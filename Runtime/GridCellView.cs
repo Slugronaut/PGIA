@@ -43,6 +43,7 @@ namespace PGIA
             CellUI.RegisterCallback<PointerUpEvent>(HandlePointerUp);
             CellUI.RegisterCallback<PointerEnterEvent>(HandlePointerEnter);
             CellUI.RegisterCallback<PointerLeaveEvent>(HandlePointerLeave);
+            CellUI.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Contain));
         }
 
         /// <summary>

@@ -19,4 +19,4 @@ MonoBehaviour:
   Icon: {fileID: 21300000, guid: 3c435a1441ef02147950b01b0e58b48d, type: 3}
   Category:
     _Value: weapon
-  Size: {x: 2, y: 2}
+  Size: {x: 2, y: 3}

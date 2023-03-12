@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -25,6 +26,7 @@ namespace PGIA
         int CellOffsetY;
         int PointerOffsetX;
         int PointerOffsetY;
+        List<GridCellView> LastHoveredCells;
 
         #region UNITY_EDITOR
         /// <summary>
@@ -69,6 +71,7 @@ namespace PGIA
             CursorRoot.style.flexShrink = 0;
             CursorRoot.style.flexGrow = 0;
             CursorRoot.style.visibility = Visibility.Hidden;
+            CursorRoot.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Contain));
         }
 
         /// <summary>
@@ -131,7 +134,13 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void PointerHoverEnter(PointerEnterEvent evt, GridCellView cellView)
         {
+            if (!IsDragging) return;
 
+            var region = new RectInt(cellView.X - CellOffsetX, cellView.Y - CellOffsetY, Item.Size.x, Item.Size.y);
+            Color color = cellView.GridView.Model.CanMoveItemToLocation(Item, region) ? cellView.GridView.Shared.ValidColor
+                                                                             : cellView.GridView.Shared.InvalidColor;
+            LastHoveredCells = CoveredCells(Item, cellView, CellOffsetX, CellOffsetY);
+            TintLastHoveredCells(color);
         }
 
         /// <summary>
@@ -141,8 +150,26 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void PointerHoverExit(PointerLeaveEvent evt, GridCellView cellView)
         {
+            if (!IsDragging) return;
 
+            LastHoveredCells = CoveredCells(Item, cellView, CellOffsetX, CellOffsetY);
+            TintLastHoveredCells(cellView.GridView.Shared.DefaultColor);
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="destCell"></param>
+        /// <param name="xCellOffset"></param>
+        /// <param name="yCellOffset"></param>
+        /// <returns></returns>
+        static List<GridCellView> CoveredCells(IGridItemModel item, GridCellView destCellView, int xCellOffset, int yCellOffset)
+        {
+            var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item.Size.x, item.Size.y);
+            region = destCellView.GridView.Model.ClipRegion(region);
+            return destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
+        }
+        
 
         /// <summary>
         /// 
@@ -168,9 +195,29 @@ namespace PGIA
         public void Cancel()
         {
             CursorScreen.UnregisterCallback<PointerMoveEvent>(HandleMove);
+
+            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColor);
+            LastHoveredCells = null;
             CursorRoot.style.visibility = Visibility.Hidden;
             SourceCellView = null;
             Item = null;
+
+            
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="color"></param>
+        void TintLastHoveredCells(Color color)
+        {
+            if (LastHoveredCells != null)
+            {
+                foreach (var cell in LastHoveredCells)
+                {
+                    cell.CellUI.style.backgroundColor = color;
+                }
+            }
         }
 
         /// <summary>

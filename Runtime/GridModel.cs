@@ -441,6 +441,22 @@ namespace PGIA
             if (!ValidateRegion(region)) return false;
             return IsLocationEmpty(region, item);
         }
+
+        /// <summary>
+        /// Clips a rect to fit within the confines of this model's grid bounds.
+        /// Returns null if the source region is not within the grid at all.
+        /// </summary>
+        /// <param name="region"></param>
+        /// <returns></returns>
+        public RectInt ClipRegion(RectInt rect)
+        {
+            int xMin = Mathf.Max(rect.xMin, 0);
+            int yMin = Mathf.Max(rect.yMin, 0);
+            int xMax = Mathf.Min(rect.xMax, GridWidth);
+            int yMax = Mathf.Min(rect.yMax, GridHeight);
+
+            return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
+        }
         #endregion
 
     }

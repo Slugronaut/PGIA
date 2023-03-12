@@ -165,6 +165,14 @@ namespace PGIA
         /// <param name="item"></param>
         /// <param name="region"></param>
         public bool CanMoveItemToLocation(IGridItemModel item, RectInt region) => BackingModel.CanMoveItemToLocation(item, region);
+
+        /// <summary>
+        /// Clips a rect to fit within the confines of this model's grid bounds.
+        /// Returns null if the source region is not within the grid at all.
+        /// </summary>
+        /// <param name="region"></param>
+        /// <returns></returns>
+        public RectInt ClipRegion(RectInt rect) => BackingModel.ClipRegion(rect);
         #endregion
 
     }

@@ -29,6 +29,7 @@ namespace PGIA
         RectInt? GetLocation(IGridItemModel item);
         void SortInventory();
         bool CanMoveItemToLocation(IGridItemModel item, RectInt region);
+        RectInt ClipRegion(RectInt region);
 
         public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get; set; }
         public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }

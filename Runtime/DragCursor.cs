@@ -14,6 +14,7 @@ namespace PGIA
     ///     -hilight on non-drag hovering
     ///     -item swapping
     ///     -'bumping' - re-adjusting multi-cell drop locations to account for bounds of grid
+    ///     -background hilighting for multi-cell items is flawed, it should not include cells below the 'root' or it will stack color effects when transparent
     ///     
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
@@ -260,9 +261,11 @@ namespace PGIA
                     TempList1.Add(cell.RootCellView);
                 if(cell.OverlappedCellViews != null)
                 {
+                    /*
                     foreach (var subCell in cell.OverlappedCellViews)
                         if (subCell != null)
                             TempList1.Add(subCell);
+                    */
                 }    
             }
             rawCells.AddRange(TempList1);

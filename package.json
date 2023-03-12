@@ -1,0 +1,20 @@
+{
+  "name": "com.postegames.powergridinventoryagain",
+  "version": "1.0.0",
+  "displayName": "Power Grid Inventory - Again!",
+  "description": "A diablo style, grid based, multi-cell inventory system.",
+  "unity": "2022.2",
+  "keywords": [
+    "gui",
+    "inventory",
+    "diablo",
+    "pgi",
+    "pgia"
+  ],
+  "author": {
+    "name": "Sluggy",
+    "email": "jcsluggy@gmail.com",
+    "url": "http:/postegames.com"
+  },
+  "dependencies": {}
+}

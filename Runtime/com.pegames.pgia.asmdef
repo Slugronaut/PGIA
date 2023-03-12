@@ -1,0 +1,16 @@
+{
+    "name": "com.pegames.pgia",
+    "rootNamespace": "",
+    "references": [
+        "GUID:e0f58bfe6a703f24a85f9333758706b6"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

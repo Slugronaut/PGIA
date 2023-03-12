@@ -168,7 +168,7 @@ namespace PGIA
                 CellViews.Add(new GridCellView(this, model.GetCell(x, y), cellUI, x, y));
                 cellUI.userData = CellViews[i];
                 cellUI.name = $"Cell ({x},{y})";
-                cellUI.style.backgroundColor = Shared.DefaultColor;
+                cellUI.style.backgroundColor = Shared.DefaultColorBackground;
                 var stackLabel = cellUI.Q<Label>(Shared.StackQtyId);
                 stackLabel.text = CellViews[i].QtyStr;
                 PositionCellUI(GridRootUI, cellUI, x, y);

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -9,6 +8,13 @@ namespace PGIA
 {
     /// <summary>
     /// To be shared between ModelViews, this represents the ircon of an item as it is being dragged around.
+    /// 
+    /// TODO:
+    ///     -sticky drags
+    ///     -hilight on non-drag hovering
+    ///     -item swapping
+    ///     -'bumping' - re-adjusting multi-cell drop locations to account for bounds of grid
+    ///     
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
     public class DragCursor : ScriptableObject
@@ -135,24 +141,12 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void PointerHoverEnter(PointerEnterEvent evt, GridCellView cellView)
         {
-            /*
-            if (!IsDragging) return;
+            if (!IsDragging)
+            {
+                LastHoveredCells = CoveredCells(null, cellView, 0, 0);
+                TintLastHoveredCells(cellView.GridView.Shared.HilightColorBackground, cellView.GridView.Shared.HilightColorIcon);
+            }
 
-            var region = new RectInt(cellView.X - CellOffsetX, cellView.Y - CellOffsetY, Item.Size.x, Item.Size.y);
-            Color color = cellView.GridView.Model.CanMoveItemToLocation(Item, region) ? cellView.GridView.Shared.ValidColor
-                                                                             : cellView.GridView.Shared.InvalidColor;
-
-
-            //we have two potential problems here
-            //1) the cellView is stretched over others so we don't have knowledge of the 'true' overlapped cells.
-            //2) the covered cells that we calculate below might include one such overlapped cell in which case we'd also
-            //   want the overlapper itself.
-            //In order to fix this we need to find the true cell being hovered regardless of overlap
-            var trueHoveredCell = FindHoveredGridCell(evt.localPosition, cellView.GridView);
-
-            LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
-            TintLastHoveredCells(color);
-            */
         }
 
         /// <summary>
@@ -162,13 +156,8 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void PointerHoverExit(PointerLeaveEvent evt, GridCellView cellView)
         {
-            /*
-            if (!IsDragging) return;
-
-            //var trueHoveredCell = FindHoveredGridCell(evt.localPosition, cellView);
-            //LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
-            TintLastHoveredCells(cellView.GridView.Shared.DefaultColor);
-            */
+            if(!IsDragging)
+                TintLastHoveredCells(cellView.GridView.Shared.DefaultColorBackground, cellView.GridView.Shared.DefaultColorIcon);
         }
 
         /// <summary>
@@ -178,14 +167,34 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void CellPointerMoved(PointerMoveEvent evt, GridCellView cellView)
         {
-            if (!IsDragging) return;
-
+            if (IsDragging)
+                HilightForDragging(evt.localPosition, cellView);
+            
+        }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="evt"></param>
+        /// <param name="cellView"></param>
+        void HilightForDragging(Vector2 localPosition, GridCellView cellView)
+        {
             //clear out previous cells if any
-            TintLastHoveredCells(cellView.GridView.Shared.DefaultColor);
+            TintLastHoveredCells(cellView.GridView.Shared.DefaultColorBackground, cellView.GridView.Shared.DefaultColorIcon);
 
             var region = new RectInt(cellView.X - CellOffsetX, cellView.Y - CellOffsetY, Item.Size.x, Item.Size.y);
-            Color color = cellView.GridView.Model.CanMoveItemToLocation(Item, region) ? cellView.GridView.Shared.ValidColor
-                                                                             : cellView.GridView.Shared.InvalidColor;
+            Color bgColor;
+            Color iconTint;
+            if (cellView.GridView.Model.CanMoveItemToLocation(Item, region))
+            {
+                bgColor = cellView.GridView.Shared.ValidColorBackground;
+                iconTint = cellView.GridView.Shared.ValidColorIcon;
+            }
+            else
+            {
+                bgColor = cellView.GridView.Shared.InvalidColorBackground;
+                iconTint = cellView.GridView.Shared.InvalidColorIcon;
+            }
 
 
             //we have two potential problems here
@@ -193,10 +202,10 @@ namespace PGIA
             //2) the covered cells that we calculate below might include one such overlapped cell in which case we'd also
             //   want the overlapper itself.
             //In order to fix this we need to find the true cell being hovered regardless of overlap
-            var trueHoveredCell = FindHoveredGridCell(cellView.CellUI.LocalToWorld(evt.localPosition), cellView.GridView);
+            var trueHoveredCell = FindHoveredGridCell(cellView.CellUI.LocalToWorld(localPosition), cellView.GridView);
 
             LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
-            TintLastHoveredCells(color);
+            TintLastHoveredCells(bgColor, iconTint);
         }
 
         /// <summary>
@@ -238,7 +247,7 @@ namespace PGIA
         /// <returns></returns>
         static List<GridCellView> CoveredCells(IGridItemModel item, GridCellView destCellView, int xCellOffset, int yCellOffset)
         {
-            var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item.Size.x, item.Size.y);
+            var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item?.Size.x ?? 1, item?.Size.y ?? 1);
             region = destCellView.GridView.Model.ClipRegion(region);
             var rawCells = destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
 
@@ -286,7 +295,7 @@ namespace PGIA
         {
             CursorScreen.UnregisterCallback<PointerMoveEvent>(HandleMove);
 
-            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColor);
+            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
             LastHoveredCells = null;
             CursorRoot.style.visibility = Visibility.Hidden;
             SourceCellView = null;
@@ -298,14 +307,18 @@ namespace PGIA
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="color"></param>
-        void TintLastHoveredCells(Color color)
+        /// <param name="backgroundColor"></param>
+        void TintLastHoveredCells(Color backgroundColor, Color iconTint)
         {
             if (LastHoveredCells != null)
             {
                 foreach (var cell in LastHoveredCells)
                 {
-                    cell.CellUI.style.backgroundColor = color;
+                    cell.CellUI.style.backgroundColor = backgroundColor;
+                    if(cell.CellUI.style.backgroundImage != null)
+                    {
+                        cell.CellUI.style.unityBackgroundImageTintColor = iconTint;
+                    }
                 }
             }
         }

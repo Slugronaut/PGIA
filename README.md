@@ -11,7 +11,7 @@ Take heed however, this is not going to be a commercial product like before and 
 support. It is designed with my own personal projects in mind and is subject to change as needed. But given that I know of a handful of people that
 have been dying for PGI to see new light, I have decided to make it public for anyone to use, branch, and expand upon.
 
-This project absolutely required Odin. I do not have any desired to write custom editors when such a tool exists. If you do not have access to Odin
+This project absolutely requires Odin. I do not have any desired to write custom editors when such a tool exists. If you do not have access to Odin
 you can still theoretically use PGIA but it will require you to roll your own property drawers that match Odin's drawer attributes in order to gain
 the full functionality. It also requires my own HashedString datatype which is linked below.
 

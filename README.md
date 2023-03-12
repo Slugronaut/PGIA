@@ -16,5 +16,5 @@ you can still theoretically use PGIA but it will require you to roll your own pr
 the full functionality. It also requires my own HashedString datatype which is linked below.
 
 # Dependencies  
-[Hashed String](https://github.com/Slugronaut/Toolbox-HashedString)
-[Odin](https://assetstore.unity.com/packages/tools/utilities/odin-inspector-and-serializer-89041)
+[Hashed String](https://github.com/Slugronaut/Toolbox-HashedString)  
+[Odin](https://assetstore.unity.com/packages/tools/utilities/odin-inspector-and-serializer-89041)  

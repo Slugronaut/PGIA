@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -134,13 +135,24 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void PointerHoverEnter(PointerEnterEvent evt, GridCellView cellView)
         {
+            /*
             if (!IsDragging) return;
 
             var region = new RectInt(cellView.X - CellOffsetX, cellView.Y - CellOffsetY, Item.Size.x, Item.Size.y);
             Color color = cellView.GridView.Model.CanMoveItemToLocation(Item, region) ? cellView.GridView.Shared.ValidColor
                                                                              : cellView.GridView.Shared.InvalidColor;
-            LastHoveredCells = CoveredCells(Item, cellView, CellOffsetX, CellOffsetY);
+
+
+            //we have two potential problems here
+            //1) the cellView is stretched over others so we don't have knowledge of the 'true' overlapped cells.
+            //2) the covered cells that we calculate below might include one such overlapped cell in which case we'd also
+            //   want the overlapper itself.
+            //In order to fix this we need to find the true cell being hovered regardless of overlap
+            var trueHoveredCell = FindHoveredGridCell(evt.localPosition, cellView.GridView);
+
+            LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
             TintLastHoveredCells(color);
+            */
         }
 
         /// <summary>
@@ -150,12 +162,73 @@ namespace PGIA
         /// <param name="cellView"></param>
         public void PointerHoverExit(PointerLeaveEvent evt, GridCellView cellView)
         {
+            /*
             if (!IsDragging) return;
 
-            LastHoveredCells = CoveredCells(Item, cellView, CellOffsetX, CellOffsetY);
+            //var trueHoveredCell = FindHoveredGridCell(evt.localPosition, cellView);
+            //LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
             TintLastHoveredCells(cellView.GridView.Shared.DefaultColor);
+            */
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="evt"></param>
+        /// <param name="cellView"></param>
+        public void CellPointerMoved(PointerMoveEvent evt, GridCellView cellView)
+        {
+            if (!IsDragging) return;
+
+            //clear out previous cells if any
+            TintLastHoveredCells(cellView.GridView.Shared.DefaultColor);
+
+            var region = new RectInt(cellView.X - CellOffsetX, cellView.Y - CellOffsetY, Item.Size.x, Item.Size.y);
+            Color color = cellView.GridView.Model.CanMoveItemToLocation(Item, region) ? cellView.GridView.Shared.ValidColor
+                                                                             : cellView.GridView.Shared.InvalidColor;
+
+
+            //we have two potential problems here
+            //1) the cellView is stretched over others so we don't have knowledge of the 'true' overlapped cells.
+            //2) the covered cells that we calculate below might include one such overlapped cell in which case we'd also
+            //   want the overlapper itself.
+            //In order to fix this we need to find the true cell being hovered regardless of overlap
+            var trueHoveredCell = FindHoveredGridCell(cellView.CellUI.LocalToWorld(evt.localPosition), cellView.GridView);
+
+            LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
+            TintLastHoveredCells(color);
+        }
+
+        /// <summary>
+        /// Due to the fact that multi-cell items display their item by stetching the first cell
+        /// of the region over the others it becomes difficult to determine the actual within
+        /// the grid itself that would be hovered in such situations.
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns></returns>
+        public static GridCellView FindHoveredGridCell(Vector2 pointerWorld, GridView gridView)
+        {
+            pointerWorld = gridView.GridRootUI.WorldToLocal(pointerWorld);
+            pointerWorld -= gridView.GridLocalOffset;
+            pointerWorld.x = Mathf.Max(1, pointerWorld.x);
+            pointerWorld.y = Mathf.Max(1, pointerWorld.y);
+            pointerWorld.x = Mathf.Min(pointerWorld.x, gridView.GridMaxPoint.x);
+            pointerWorld.y = Mathf.Min(pointerWorld.y, gridView.GridMaxPoint.y);
+
+
+            var cellHoveredX = (int)pointerWorld.x / (int)gridView.CellWidth;
+            var cellHoveredY = (int)pointerWorld.y / (int)gridView.CellHeight;
+
+            //this result can give us results beyond the bounds of the grid, clamp that here
+            if (cellHoveredX >= gridView.Model.GridWidth)
+                cellHoveredX = gridView.Model.GridWidth - 1;
+            if(cellHoveredY >= gridView.Model.GridHeight)
+                cellHoveredY = gridView.Model.GridHeight - 1;
+
+            return gridView.GetCellView(gridView.Model.GridWidth, cellHoveredX, cellHoveredY);
+        }
+
+        static readonly List<GridCellView> TempList1 = new();
         /// <summary>
         /// 
         /// </summary>
@@ -167,9 +240,26 @@ namespace PGIA
         {
             var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item.Size.x, item.Size.y);
             region = destCellView.GridView.Model.ClipRegion(region);
-            return destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
+            var rawCells = destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
+
+            //we also need to account for any cells in the list that may be strecthing over
+            //other cells or are being stretched over themselves due to multi-celled items.
+            TempList1.Clear();
+            foreach(var cell in rawCells)
+            {
+                if (cell.RootCellView != null)
+                    TempList1.Add(cell.RootCellView);
+                if(cell.OverlappedCellViews != null)
+                {
+                    foreach (var subCell in cell.OverlappedCellViews)
+                        if (subCell != null)
+                            TempList1.Add(subCell);
+                }    
+            }
+            rawCells.AddRange(TempList1);
+            return rawCells;
         }
-        
+
 
         /// <summary>
         /// 

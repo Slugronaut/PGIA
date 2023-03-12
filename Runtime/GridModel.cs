@@ -448,12 +448,12 @@ namespace PGIA
         /// </summary>
         /// <param name="region"></param>
         /// <returns></returns>
-        public RectInt ClipRegion(RectInt rect)
+        public RectInt ClipRegion(RectInt region)
         {
-            int xMin = Mathf.Max(rect.xMin, 0);
-            int yMin = Mathf.Max(rect.yMin, 0);
-            int xMax = Mathf.Min(rect.xMax, GridWidth);
-            int yMax = Mathf.Min(rect.yMax, GridHeight);
+            int xMin = Mathf.Max(region.xMin, 0);
+            int yMin = Mathf.Max(region.yMin, 0);
+            int xMax = Mathf.Min(region.xMax, GridWidth);
+            int yMax = Mathf.Min(region.yMax, GridHeight);
 
             return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
         }

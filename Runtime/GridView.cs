@@ -14,6 +14,7 @@ namespace PGIA
     /// </summary>
     public class GridView : MonoBehaviour
     {
+        #region Public Fields and Properties
         [SerializeReference]
         [SerializeField]
         [HideInInspector]
@@ -43,7 +44,6 @@ namespace PGIA
         [Tooltip("Asset that describes the cursor used by this view model when dragging items.")]
         public DragCursor SharedCursor;
 
-
         /// <summary>
         /// How many pixels wide a cell is for this view.
         /// </summary>
@@ -54,12 +54,28 @@ namespace PGIA
         /// </summary>
         public float CellHeight { get; private set; }
 
+        /// <summary>
+        /// Returns the local offset from the containing UI element that the first grid cell starts.
+        /// </summary>
+        public Vector2 GridLocalOffset => CellViews[0].CellUI.layout.min;
 
-        VisualElement GridRoot;
+        /// <summary>
+        /// Returns the local position from the containing UI element of the bottom-right corner of the grid itself.
+        /// </summary>
+        public Vector2 GridMaxPoint => CellViews[CellViews.Count - 1].CellUI.layout.max;
+
+        public VisualElement GridRootUI { get; private set; }
+        #endregion
+
+
+        #region Private Fields
         List<GridCellView> CellViews;
         bool Started;
         static bool AppIsQuitting = false;
+        #endregion
 
+
+        #region Unity Events
         /// <summary>
         /// 
         /// </summary>
@@ -110,7 +126,10 @@ namespace PGIA
 
             TeardownGrid();
         }
+        #endregion
 
+
+        #region Private Methods
         /// <summary>
         /// 
         /// </summary>
@@ -136,7 +155,7 @@ namespace PGIA
             _Model = (GridModelBehaviour)model;
 
 
-            GridRoot = View.rootVisualElement.Q<VisualElement>(GridContainerId);
+            GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
             int total = Model.GridWidth * Model.GridHeight;
             CellViews = new(total);
 
@@ -152,15 +171,15 @@ namespace PGIA
                 cellUI.style.backgroundColor = Shared.DefaultColor;
                 var stackLabel = cellUI.Q<Label>(Shared.StackQtyId);
                 stackLabel.text = CellViews[i].QtyStr;
-                PositionCellUI(GridRoot, cellUI, x, y);
-                GridRoot.Add(cellUI);
+                PositionCellUI(GridRootUI, cellUI, x, y);
+                GridRootUI.Add(cellUI);
 
                 //technically only need to set this once but I need to know the info after parenting so I have to do it in this loop
                 CellWidth = cellUI.style.width.value.value;
                 CellHeight = cellUI.style.height.value.value;
             }
 
-            GridRoot.RegisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
+            GridRootUI.RegisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
             _Model.OnGridSizeChanged.AddListener(HandleModelGridSizeChanged);
             _Model.OnStoredItem.AddListener(HandleStoredItem);
             _Model.OnRemovedItem.AddListener(HandleRemovedItem);
@@ -174,14 +193,14 @@ namespace PGIA
         {
             if (_Model == null || !Started) return;
 
-            GridRoot.UnregisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
+            GridRootUI.UnregisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
             _Model.OnGridSizeChanged.AddListener(HandleModelGridSizeChanged);
             _Model.OnStoredItem.AddListener(HandleStoredItem);
             _Model.OnRemovedItem.AddListener(HandleRemovedItem);
 
             CellViews.Clear();
-            GridRoot = View.rootVisualElement.Q<VisualElement>(GridContainerId);
-            GridRoot.Clear();
+            GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
+            GridRootUI.Clear();
         }
 
         /// <summary>
@@ -228,7 +247,10 @@ namespace PGIA
         {
             PushModelToView();
         }
+        #endregion
 
+
+        #region Public Methods
         /// <summary>
         /// 
         /// </summary>
@@ -255,8 +277,10 @@ namespace PGIA
 
             for(int y = region.y; y < region.y + region.height; y++)
             {
-                for(int x = region.x; x < region.x + region.width; x++)
-                    cellViews.Add(CellViews[(y*modelGridWidth)+x]);
+                for (int x = region.x; x < region.x + region.width; x++)
+                {
+                    cellViews.Add(CellViews[(y * modelGridWidth) + x]);
+                }
             }
 
             return cellViews.Count > 0 ? cellViews : null;
@@ -294,14 +318,19 @@ namespace PGIA
 
             var cellViews = GetCellViews(Model.GridWidth, region);
             Assert.IsNotNull(cellViews);
+            var firstCellView = cellViews[0];
             foreach (var cellView in cellViews)
+            {
                 cellView.Item = item;
+                cellView.RootCellView = firstCellView;
+            }
+            firstCellView.OverlappedCellViews = cellViews;
+            firstCellView.RootCellView = null;
 
             //now we want to set the icon of that cell and stretch it to fill the entire item region on the grid
-            GridRoot = View.rootVisualElement.Q<VisualElement>(GridContainerId);
-            var firstCellView = cellViews[0];
+            GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
             firstCellView.CellUI.style.backgroundImage = new StyleBackground(item.Shared.Icon);
-            PositionCellUI(GridRoot, firstCellView.CellUI, region.x, region.y, item.Size.x, item.Size.y);
+            PositionCellUI(GridRootUI, firstCellView.CellUI, region.x, region.y, item.Size.x, item.Size.y);
             firstCellView.CellUI.BringToFront();
         }
 
@@ -318,13 +347,18 @@ namespace PGIA
 
             var cellViews = GetCellViews(Model.GridWidth, region);
             Assert.IsNotNull(cellViews);
-            foreach (var cellView in cellViews)
-                cellView.Item = null;
-
             var firstCellView = cellViews[0];
-            GridRoot = View.rootVisualElement.Q<VisualElement>(GridContainerId);
+            foreach (var cellView in cellViews)
+            {
+                cellView.Item = null;
+                cellView.RootCellView = null;
+            }
+            firstCellView.OverlappedCellViews = null;
+            firstCellView.RootCellView = null;
+
+            GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
             firstCellView.CellUI.style.backgroundImage = null;
-            PositionCellUI(GridRoot, firstCellView.CellUI, firstCellView.X, firstCellView.Y, 1, 1);
+            PositionCellUI(GridRootUI, firstCellView.CellUI, firstCellView.X, firstCellView.Y, 1, 1);
         }
 
         /// <summary>
@@ -356,5 +390,7 @@ namespace PGIA
 
             return false;
         }
+        #endregion
+
     }
 }

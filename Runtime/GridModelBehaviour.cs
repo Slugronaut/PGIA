@@ -172,7 +172,7 @@ namespace PGIA
         /// </summary>
         /// <param name="region"></param>
         /// <returns></returns>
-        public RectInt ClipRegion(RectInt rect) => BackingModel.ClipRegion(rect);
+        public RectInt ClipRegion(RectInt region) => BackingModel.ClipRegion(region);
         #endregion
 
     }

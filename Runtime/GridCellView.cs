@@ -1,9 +1,10 @@
-using System;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
+
 namespace PGIA
 {
     /// <summary>
-    /// 
+    /// The viewmodel for a cell within a GridView.
     /// </summary>
     public class GridCellView : System.IDisposable
     {
@@ -21,6 +22,17 @@ namespace PGIA
             get => (Cell.Item == null) || (Cell.Item.MaxStackCount) < 2 ? string.Empty : Cell.Item.StackCount.ToString();
         }
 
+        /// <summary>
+        /// In the case that this cell has been stetched to overlap others, this will return the list of those overlapped cells.
+        /// </summary>
+        public List<GridCellView> OverlappedCellViews;
+
+        /// <summary>
+        /// In the case that this cell has been overlapped by another that was stretched over it, this will return that overlappin
+        /// </summary>
+        public GridCellView RootCellView;
+
+        bool Hovered = false;
         bool Disposed;
 
         /// <summary>
@@ -43,6 +55,7 @@ namespace PGIA
             CellUI.RegisterCallback<PointerUpEvent>(HandlePointerUp);
             CellUI.RegisterCallback<PointerEnterEvent>(HandlePointerEnter);
             CellUI.RegisterCallback<PointerLeaveEvent>(HandlePointerLeave);
+            CellUI.RegisterCallback<PointerMoveEvent>(HandlePointerMove);
             CellUI.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Contain));
         }
 
@@ -70,6 +83,7 @@ namespace PGIA
         /// <param name="evt"></param>
         void HandlePointerEnter(PointerEnterEvent evt)
         {
+            Hovered = true;
             GridView.SharedCursor.PointerHoverEnter(evt, this);
         }
 
@@ -79,7 +93,24 @@ namespace PGIA
         /// <param name="evt"></param>
         void HandlePointerLeave(PointerLeaveEvent evt)
         {
+            Hovered = false;
             GridView.SharedCursor.PointerHoverExit(evt, this);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="evt"></param>
+        void HandlePointerMove(PointerMoveEvent evt)
+        {
+            if (Hovered)
+            {
+                //as usual, stretching the cells for multi-cell items kinda fucks us.
+                //we can't properly send update info to the drag cursor for hilighting
+                //just with enter/exit hover events alone so we need to send that info
+                //constantly while hovering
+                GridView.SharedCursor.CellPointerMoved(evt, this);
+            }
         }
 
         /// <summary>
@@ -93,6 +124,7 @@ namespace PGIA
             CellUI.UnregisterCallback<PointerUpEvent>(HandlePointerUp);
             CellUI.UnregisterCallback<PointerEnterEvent>(HandlePointerEnter);
             CellUI.UnregisterCallback<PointerLeaveEvent>(HandlePointerLeave);
+            CellUI.UnregisterCallback<PointerMoveEvent>(HandlePointerMove);
             Disposed = true;
         }
 

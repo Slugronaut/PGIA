@@ -43,6 +43,18 @@ namespace PGIA
         [Tooltip("Asset that describes the cursor used by this view model when dragging items.")]
         public DragCursor SharedCursor;
 
+
+        /// <summary>
+        /// How many pixels wide a cell is for this view.
+        /// </summary>
+        public float CellWidth { get; private set; }
+
+        /// <summary>
+        /// How many pixels tall a cell is for this view.
+        /// </summary>
+        public float CellHeight { get; private set; }
+
+
         VisualElement GridRoot;
         List<GridCellView> CellViews;
         bool Started;
@@ -123,6 +135,7 @@ namespace PGIA
                 TeardownGrid();
             _Model = (GridModelBehaviour)model;
 
+
             GridRoot = View.rootVisualElement.Q<VisualElement>(GridContainerId);
             int total = Model.GridWidth * Model.GridHeight;
             CellViews = new(total);
@@ -140,6 +153,10 @@ namespace PGIA
                 stackLabel.text = CellViews[i].QtyStr;
                 PositionCellUI(GridRoot, cellUI, x, y);
                 GridRoot.Add(cellUI);
+
+                //technically only need to set this once but I need to know the info after parenting so I have to do it in this loop
+                CellWidth = cellUI.style.width.value.value;
+                CellHeight = cellUI.style.height.value.value;
             }
 
             GridRoot.RegisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
@@ -245,7 +262,7 @@ namespace PGIA
         }
 
         /// <summary>
-        /// Returns the 
+        /// Returns the top-left cell containing the item.
         /// </summary>
         /// <param name="model"></param>
         /// <param name="model"></param>

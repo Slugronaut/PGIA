@@ -23,6 +23,8 @@ namespace PGIA
         bool Initialized = false;
         int CellOffsetX;
         int CellOffsetY;
+        int PointerOffsetX;
+        int PointerOffsetY;
 
         #region UNITY_EDITOR
         /// <summary>
@@ -75,24 +77,51 @@ namespace PGIA
         /// <param name="view"></param>
         /// <param name="srouceModel"></param>
         /// <param name="item"></param>
-        public void BeginDrag(PointerDownEvent evt, GridCellView srcCellView)
+        public void BeginDrag(PointerDownEvent evt, GridCellView clickedCellView)
         {
-            if (srcCellView.Cell.Item == null) return;
+            if (clickedCellView.Cell.Item == null) return;
 
-            Item = srcCellView.Cell.Item;
-            SourceCellView = srcCellView;
+            Item = clickedCellView.Cell.Item;
+            SourceCellView = clickedCellView;
 
             CursorScreen.RegisterCallback<PointerMoveEvent>(HandleMove);
             CursorRoot.style.visibility = Visibility.Visible;
             CursorRoot.style.backgroundImage = new StyleBackground(Item.Shared.Icon);
-            CursorRoot.style.width = srcCellView.CellUI.style.width;
-            CursorRoot.style.height = srcCellView.CellUI.style.height;
+            CursorRoot.style.width = clickedCellView.CellUI.style.width;
+            CursorRoot.style.height = clickedCellView.CellUI.style.height;
             CursorRoot.pickingMode = PickingMode.Ignore; //this seems to be bugged. setting it via the stylesheets in the ui builder works though
-            SetCursorPosition(evt.position.x, evt.position.y);
+            
+
+            //NOTE: It is vital to remember that when an item is multi-celled, the root cell (i.e. the top-left cell)
+            //is stretched over all others and thus it is the only one that can be interacted with so it will always
+            //be the cell passed to this function as 'clickedCellView'.
+
+            //get the actual cell grabbed by and store that offset from the top-left cell of the item,
+            //we'll need it later for placement calculations
+            var offset = CalculateCellOffsetFromLocalCoords(clickedCellView, evt.localPosition);
+            CellOffsetX = offset.x;
+            CellOffsetY = offset.y;
+            PointerOffsetX = (int)evt.localPosition.x;
+            PointerOffsetY = (int)evt.localPosition.y;
 
             //we are removing the item from the view but not the model. that way if something goes catastrophically wrong
             //we can recover the view by simply pushing the full model back in to update it. maybe. i think.
-            srcCellView.GridView.HandleRemovedItem(Item.Container, Item);
+            clickedCellView.GridView.HandleRemovedItem(Item.Container, Item);
+            SetCursorPosition(evt.position.x, evt.position.y);
+
+        }
+
+        /// <summary>
+        /// Helper method to figure out which cell was actually clicked in a multi-celled item.
+        /// </summary>
+        /// <param name="local"></param>
+        /// <returns></returns>
+        Vector2Int CalculateCellOffsetFromLocalCoords(GridCellView rootCell, Vector2 local)
+        {
+            return new Vector2Int(
+                (int)local.x / (int)rootCell.GridView.CellWidth,
+                (int)local.y / (int)rootCell.GridView.CellHeight
+                );
         }
 
         /// <summary>
@@ -100,7 +129,7 @@ namespace PGIA
         /// </summary>
         /// <param name="evt"></param>
         /// <param name="cellView"></param>
-        public void DragHoverEnter(GridCellView cellView)
+        public void PointerHoverEnter(PointerEnterEvent evt, GridCellView cellView)
         {
 
         }
@@ -110,7 +139,7 @@ namespace PGIA
         /// </summary>
         /// <param name="evt"></param>
         /// <param name="cellView"></param>
-        public void DragHoverExit(GridCellView cellView)
+        public void PointerHoverExit(PointerLeaveEvent evt, GridCellView cellView)
         {
 
         }
@@ -118,7 +147,7 @@ namespace PGIA
         /// <summary>
         /// 
         /// </summary>
-        public void Drop(PointerUpEvent evt, GridCellView destCellView)
+        public void Drop(PointerUpEvent evt, GridCellView clickedCellView)
         {
             if (!IsDragging) return; //just in case we click elsewhere without starting a drag and then release over a slot
             //Assert.IsNull(destSlot.Slot.Item); //we don't use this cause we haven't actually moved the fucker yet
@@ -129,7 +158,7 @@ namespace PGIA
 
             //now we can request an actual model-backed move which should
             //propgate the visual updates for both src and dest models.
-            GridView.RequestMoveItem(Item, destCellView.GridView, destCellView.X, destCellView.Y);
+            GridView.RequestMoveItem(Item, clickedCellView.GridView, clickedCellView.X - CellOffsetX, clickedCellView.Y - CellOffsetY);
             Cancel();
         }
 
@@ -160,8 +189,10 @@ namespace PGIA
         /// <param name="y"></param>
         void SetCursorPosition(float x, float y)
         {
-            CursorRoot.style.left = new StyleLength(x - (CursorRoot.style.width.value.value * 0.5f));
-            CursorRoot.style.top = new StyleLength(y - (CursorRoot.style.height.value.value * 0.5f));
+            CursorRoot.style.left = new StyleLength(x - PointerOffsetX);// - (CursorRoot.style.width.value.value * 0.5f));
+            CursorRoot.style.top = new StyleLength(y - PointerOffsetY);// - (CursorRoot.style.height.value.value * 0.5f));
         }
+
+
     }
 }

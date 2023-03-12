@@ -14,8 +14,8 @@ namespace PGIA
         readonly public int X;
         readonly public int Y;
 
-        public int Width { get => Cell.Item == null ? 0 : Cell.Item.Size.x; }
-        public int Height { get => Cell.Item == null ? 0 : Cell.Item.Size.y; }
+        public int GridCellsX { get => Cell.Item == null ? 0 : Cell.Item.Size.x; }
+        public int GridCellsY { get => Cell.Item == null ? 0 : Cell.Item.Size.y; }
         public string QtyStr
         {
             get => (Cell.Item == null) || (Cell.Item.MaxStackCount) < 2 ? string.Empty : Cell.Item.StackCount.ToString();
@@ -41,6 +41,8 @@ namespace PGIA
 
             CellUI.RegisterCallback<PointerDownEvent>(HandlePointerDown);
             CellUI.RegisterCallback<PointerUpEvent>(HandlePointerUp);
+            CellUI.RegisterCallback<PointerEnterEvent>(HandlePointerEnter);
+            CellUI.RegisterCallback<PointerLeaveEvent>(HandlePointerLeave);
         }
 
         /// <summary>
@@ -64,12 +66,32 @@ namespace PGIA
         /// <summary>
         /// 
         /// </summary>
+        /// <param name="evt"></param>
+        void HandlePointerEnter(PointerEnterEvent evt)
+        {
+            GridView.SharedCursor.PointerHoverEnter(evt, this);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="evt"></param>
+        void HandlePointerLeave(PointerLeaveEvent evt)
+        {
+            GridView.SharedCursor.PointerHoverExit(evt, this);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
         void Dispose(bool disposing)
         {
             if(Disposed) return;
             //currently not using any un-managed resources so the 'disposing' flag isn't even used.
             CellUI.UnregisterCallback<PointerDownEvent>(HandlePointerDown);
             CellUI.UnregisterCallback<PointerUpEvent>(HandlePointerUp);
+            CellUI.UnregisterCallback<PointerEnterEvent>(HandlePointerEnter);
+            CellUI.UnregisterCallback<PointerLeaveEvent>(HandlePointerLeave);
             Disposed = true;
         }
 

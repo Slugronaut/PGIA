@@ -119,7 +119,7 @@ namespace PGIA
         void Dispose(bool disposing)
         {
             if(Disposed) return;
-            //currently not using any un-managed resources so the 'disposing' flag isn't even used.
+            //currently not even making use of the 'disposing' flag
             CellUI.UnregisterCallback<PointerDownEvent>(HandlePointerDown);
             CellUI.UnregisterCallback<PointerUpEvent>(HandlePointerUp);
             CellUI.UnregisterCallback<PointerEnterEvent>(HandlePointerEnter);

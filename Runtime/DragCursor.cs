@@ -10,22 +10,27 @@ namespace PGIA
     /// To be shared between ModelViews, this represents the ircon of an item as it is being dragged around.
     /// 
     /// TODO:
-    ///     -sticky drags
-    ///     -hilight on non-drag hovering
+    ///     -slight difference between hilight calculation and the actual cell that will be clicked when dropping items
+    ///     -hilighting is wonky with sticky drags
     ///     -item swapping
     ///     -'bumping' - re-adjusting multi-cell drop locations to account for bounds of grid
-    ///     -background hilighting for multi-cell items is flawed, it should not include cells below the 'root' or it will stack color effects when transparent
     ///     
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
     public class DragCursor : ScriptableObject
     {
+        #region Public Fields and Properties
         [Tooltip("A UI document describing the cursor.")]
         public VisualTreeAsset CursorAsset;
 
+        [Tooltip("If the pointer is pressed down and doesn't move beyond this threshold the the drag will be 'sticky' upon release. I.E. it will not immeditately be dropped but will instead require another press.")]
+        public float StickyDragMoveThreshold = 12;
+        #endregion
+
+
+        #region Private Fields - Drag State Info
         GridCellView SourceCellView;
         IGridItemModel Item;
-
         VisualElement CursorScreen;
         VisualElement CursorRoot;
         public bool IsDragging => Item != null;
@@ -34,9 +39,15 @@ namespace PGIA
         int CellOffsetY;
         int PointerOffsetX;
         int PointerOffsetY;
+        Vector2 DragStartWorld;
+        bool CandidateForStickyDrag = false;
         List<GridCellView> LastHoveredCells;
+        static readonly List<GridCellView> TempList1 = new();
+        #endregion
+
 
         #region UNITY_EDITOR
+        #if UNITY_EDITOR
         /// <summary>
         /// We need this bit of editor-only logic so that we can reset the Initialized state in the editor
         /// since SO assets referenced in a scene will come into existance at asignment and persist until
@@ -57,9 +68,11 @@ namespace PGIA
         {
             Initialized = false;
         }
+        #endif
         #endregion
 
 
+        #region Public Methods
         /// <summary>
         /// Currently, this is called by GridViewModel upon it's own initialization.
         /// If it has already been called once by any source, further calls will do nothing.
@@ -90,10 +103,14 @@ namespace PGIA
         /// <param name="item"></param>
         public void BeginDrag(PointerDownEvent evt, GridCellView clickedCellView)
         {
+            if (IsDragging) return;
+
             if (clickedCellView.Cell.Item == null) return;
 
             Item = clickedCellView.Cell.Item;
             SourceCellView = clickedCellView;
+            DragStartWorld = clickedCellView.CellUI.LocalToWorld(evt.localPosition);
+            CandidateForStickyDrag = true;
 
             CursorScreen.RegisterCallback<PointerMoveEvent>(HandleMove);
             CursorRoot.style.visibility = Visibility.Visible;
@@ -123,16 +140,43 @@ namespace PGIA
         }
 
         /// <summary>
-        /// Helper method to figure out which cell was actually clicked in a multi-celled item.
+        /// 
         /// </summary>
-        /// <param name="local"></param>
-        /// <returns></returns>
-        Vector2Int CalculateCellOffsetFromLocalCoords(GridCellView rootCell, Vector2 local)
+        public void Drop(PointerUpEvent evt, GridCellView clickedCellView)
         {
-            return new Vector2Int(
-                (int)local.x / (int)rootCell.GridView.CellWidth,
-                (int)local.y / (int)rootCell.GridView.CellHeight
-                );
+            if (!IsDragging) return; //just in case we click elsewhere without starting a drag and then release over a slot
+            if (CandidateForStickyDrag)
+            {
+                TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
+                HilightForDragging(evt.localPosition, clickedCellView);
+                CandidateForStickyDrag = false;
+                return;
+            }
+
+            //Assert.IsNull(destSlot.Slot.Item); //we don't use this cause we haven't actually moved the fucker yet
+            Assert.IsNotNull(Item);
+
+            //first we need to actually put the item back in the visuals otherwise bad things will happen
+            SourceCellView.GridView.HandleStoredItem(Item.Container, Item);
+
+            //now we can request an actual model-backed move which should
+            //propgate the visual updates for both src and dest models.
+            GridView.RequestMoveItem(Item, clickedCellView.GridView, clickedCellView.X - CellOffsetX, clickedCellView.Y - CellOffsetY);
+            Cancel();
+        }
+
+        /// <summary>
+        /// Simply cleans up any visual effects 
+        /// </summary>
+        public void Cancel()
+        {
+            CursorScreen.UnregisterCallback<PointerMoveEvent>(HandleMove);
+
+            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
+            LastHoveredCells = null;
+            CursorRoot.style.visibility = Visibility.Hidden;
+            SourceCellView = null;
+            Item = null;
         }
 
         /// <summary>
@@ -169,10 +213,33 @@ namespace PGIA
         public void CellPointerMoved(PointerMoveEvent evt, GridCellView cellView)
         {
             if (IsDragging)
+            {
                 HilightForDragging(evt.localPosition, cellView);
+                if(CandidateForStickyDrag)
+                {
+                    if ((DragStartWorld - cellView.CellUI.LocalToWorld(evt.localPosition)).sqrMagnitude > StickyDragMoveThreshold)
+                        CandidateForStickyDrag = false;
+                }
+            }
             
         }
-        
+        #endregion
+
+
+        #region Private Methods
+        /// <summary>
+        /// Helper method to figure out which cell was actually clicked in a multi-celled item.
+        /// </summary>
+        /// <param name="local"></param>
+        /// <returns></returns>
+        Vector2Int CalculateCellOffsetFromLocalCoords(GridCellView rootCell, Vector2 local)
+        {
+            return new Vector2Int(
+                (int)local.x / (int)rootCell.GridView.CellWidth,
+                (int)local.y / (int)rootCell.GridView.CellHeight
+                );
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -210,104 +277,6 @@ namespace PGIA
         }
 
         /// <summary>
-        /// Due to the fact that multi-cell items display their item by stetching the first cell
-        /// of the region over the others it becomes difficult to determine the actual within
-        /// the grid itself that would be hovered in such situations.
-        /// </summary>
-        /// <param name=""></param>
-        /// <returns></returns>
-        public static GridCellView FindHoveredGridCell(Vector2 pointerWorld, GridView gridView)
-        {
-            pointerWorld = gridView.GridRootUI.WorldToLocal(pointerWorld);
-            pointerWorld -= gridView.GridLocalOffset;
-            pointerWorld.x = Mathf.Max(1, pointerWorld.x);
-            pointerWorld.y = Mathf.Max(1, pointerWorld.y);
-            pointerWorld.x = Mathf.Min(pointerWorld.x, gridView.GridMaxPoint.x);
-            pointerWorld.y = Mathf.Min(pointerWorld.y, gridView.GridMaxPoint.y);
-
-
-            var cellHoveredX = (int)pointerWorld.x / (int)gridView.CellWidth;
-            var cellHoveredY = (int)pointerWorld.y / (int)gridView.CellHeight;
-
-            //this result can give us results beyond the bounds of the grid, clamp that here
-            if (cellHoveredX >= gridView.Model.GridWidth)
-                cellHoveredX = gridView.Model.GridWidth - 1;
-            if(cellHoveredY >= gridView.Model.GridHeight)
-                cellHoveredY = gridView.Model.GridHeight - 1;
-
-            return gridView.GetCellView(gridView.Model.GridWidth, cellHoveredX, cellHoveredY);
-        }
-
-        static readonly List<GridCellView> TempList1 = new();
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="destCell"></param>
-        /// <param name="xCellOffset"></param>
-        /// <param name="yCellOffset"></param>
-        /// <returns></returns>
-        static List<GridCellView> CoveredCells(IGridItemModel item, GridCellView destCellView, int xCellOffset, int yCellOffset)
-        {
-            var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item?.Size.x ?? 1, item?.Size.y ?? 1);
-            region = destCellView.GridView.Model.ClipRegion(region);
-            var rawCells = destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
-
-            //we also need to account for any cells in the list that may be strecthing over
-            //other cells or are being stretched over themselves due to multi-celled items.
-            TempList1.Clear();
-            foreach(var cell in rawCells)
-            {
-                if (cell.RootCellView != null)
-                    TempList1.Add(cell.RootCellView);
-                if(cell.OverlappedCellViews != null)
-                {
-                    /*
-                    foreach (var subCell in cell.OverlappedCellViews)
-                        if (subCell != null)
-                            TempList1.Add(subCell);
-                    */
-                }    
-            }
-            rawCells.AddRange(TempList1);
-            return rawCells;
-        }
-
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public void Drop(PointerUpEvent evt, GridCellView clickedCellView)
-        {
-            if (!IsDragging) return; //just in case we click elsewhere without starting a drag and then release over a slot
-            //Assert.IsNull(destSlot.Slot.Item); //we don't use this cause we haven't actually moved the fucker yet
-            Assert.IsNotNull(Item);
-
-            //first we need to actually put the item back in the visuals otherwise bad things will happen
-            SourceCellView.GridView.HandleStoredItem(Item.Container, Item);
-
-            //now we can request an actual model-backed move which should
-            //propgate the visual updates for both src and dest models.
-            GridView.RequestMoveItem(Item, clickedCellView.GridView, clickedCellView.X - CellOffsetX, clickedCellView.Y - CellOffsetY);
-            Cancel();
-        }
-
-        /// <summary>
-        /// Simply cleans up any visual effects 
-        /// </summary>
-        public void Cancel()
-        {
-            CursorScreen.UnregisterCallback<PointerMoveEvent>(HandleMove);
-
-            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
-            LastHoveredCells = null;
-            CursorRoot.style.visibility = Visibility.Hidden;
-            SourceCellView = null;
-            Item = null;
-
-            
-        }
-
-        /// <summary>
         /// 
         /// </summary>
         /// <param name="backgroundColor"></param>
@@ -342,10 +311,67 @@ namespace PGIA
         /// <param name="y"></param>
         void SetCursorPosition(float x, float y)
         {
-            CursorRoot.style.left = new StyleLength(x - PointerOffsetX);// - (CursorRoot.style.width.value.value * 0.5f));
-            CursorRoot.style.top = new StyleLength(y - PointerOffsetY);// - (CursorRoot.style.height.value.value * 0.5f));
+            CursorRoot.style.left = new StyleLength(x - PointerOffsetX);
+            CursorRoot.style.top = new StyleLength(y - PointerOffsetY);
+        }
+        #endregion
+
+
+        #region Static Helper Methods
+        /// <summary>
+        /// Due to the fact that multi-cell items display their item by stetching the first cell
+        /// of the region over the others it becomes difficult to determine the actual within
+        /// the grid itself that would be hovered in such situations.
+        /// </summary>
+        /// <param name=""></param>
+        /// <returns></returns>
+        static GridCellView FindHoveredGridCell(Vector2 pointerWorld, GridView gridView)
+        {
+            pointerWorld = gridView.GridRootUI.WorldToLocal(pointerWorld);
+            pointerWorld -= gridView.GridLocalOffset;
+            pointerWorld.x = Mathf.Max(1, pointerWorld.x);
+            pointerWorld.y = Mathf.Max(1, pointerWorld.y);
+            pointerWorld.x = Mathf.Min(pointerWorld.x, gridView.GridMaxPoint.x);
+            pointerWorld.y = Mathf.Min(pointerWorld.y, gridView.GridMaxPoint.y);
+
+
+            var cellHoveredX = (int)pointerWorld.x / (int)gridView.CellWidth;
+            var cellHoveredY = (int)pointerWorld.y / (int)gridView.CellHeight;
+
+            //this result can give us results beyond the bounds of the grid, clamp that here
+            if (cellHoveredX >= gridView.Model.GridWidth)
+                cellHoveredX = gridView.Model.GridWidth - 1;
+            if (cellHoveredY >= gridView.Model.GridHeight)
+                cellHoveredY = gridView.Model.GridHeight - 1;
+
+            return gridView.GetCellView(gridView.Model.GridWidth, cellHoveredX, cellHoveredY);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="destCell"></param>
+        /// <param name="xCellOffset"></param>
+        /// <param name="yCellOffset"></param>
+        /// <returns></returns>
+        static List<GridCellView> CoveredCells(IGridItemModel item, GridCellView destCellView, int xCellOffset, int yCellOffset)
+        {
+            var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item?.Size.x ?? 1, item?.Size.y ?? 1);
+            region = destCellView.GridView.Model.ClipRegion(region);
+            var rawCells = destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
+
+            //we also need to account for any cells in the list that may be strecthing over
+            //other cells or are being stretched over themselves due to multi-celled items.
+            TempList1.Clear();
+            foreach (var cell in rawCells)
+            {
+                if (cell.RootCellView != null)
+                    TempList1.Add(cell.RootCellView);
+            }
+            rawCells.AddRange(TempList1);
+            return rawCells;
+        }
+        #endregion
 
     }
 }

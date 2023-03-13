@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.Graphs;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -11,9 +12,8 @@ namespace PGIA
     /// 
     /// TODO:
     ///     -slight difference between hilight calculation and the actual cell that will be clicked when dropping items
-    ///     -hilighting is wonky with sticky drags
-    ///     -item swapping
     ///     -'bumping' - re-adjusting multi-cell drop locations to account for bounds of grid
+    ///     -item swapping
     ///     
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
@@ -35,19 +35,16 @@ namespace PGIA
         VisualElement CursorRoot;
         public bool IsDragging => Item != null;
         bool Initialized = false;
-        int CellOffsetX;
-        int CellOffsetY;
-        int PointerOffsetX;
-        int PointerOffsetY;
         Vector2 DragStartWorld;
         bool CandidateForStickyDrag = false;
         List<GridCellView> LastHoveredCells;
-        static readonly List<GridCellView> TempList1 = new();
+        readonly static List<GridCellView> TempList1 = new();
+        readonly static List<GridCellView> TempList2 = new();
         #endregion
 
 
         #region UNITY_EDITOR
-        #if UNITY_EDITOR
+#if UNITY_EDITOR
         /// <summary>
         /// We need this bit of editor-only logic so that we can reset the Initialized state in the editor
         /// since SO assets referenced in a scene will come into existance at asignment and persist until
@@ -87,7 +84,7 @@ namespace PGIA
             CursorScreen.Add(CursorRoot);
 
             CursorRoot.SetEnabled(true);
-            CursorRoot.pickingMode = PickingMode.Ignore;
+            CursorRoot.pickingMode = PickingMode.Ignore; //this seems to be bugged. setting it via the stylesheets in the ui builder works though
             CursorRoot.style.position = Position.Absolute;
             CursorRoot.style.flexShrink = 0;
             CursorRoot.style.flexGrow = 0;
@@ -103,8 +100,11 @@ namespace PGIA
         /// <param name="item"></param>
         public void BeginDrag(PointerDownEvent evt, GridCellView clickedCellView)
         {
-            if (IsDragging) return;
+            //NOTE: It is vital to remember that when an item is multi-celled, the root cell (i.e. the top-left cell)
+            //is stretched over all others and thus it is the only one that can be interacted with so it will always
+            //be the cell passed to this function as 'clickedCellView'.
 
+            if (IsDragging) return;
             if (clickedCellView.Cell.Item == null) return;
 
             Item = clickedCellView.Cell.Item;
@@ -117,20 +117,7 @@ namespace PGIA
             CursorRoot.style.backgroundImage = new StyleBackground(Item.Shared.Icon);
             CursorRoot.style.width = clickedCellView.CellUI.style.width;
             CursorRoot.style.height = clickedCellView.CellUI.style.height;
-            CursorRoot.pickingMode = PickingMode.Ignore; //this seems to be bugged. setting it via the stylesheets in the ui builder works though
             
-
-            //NOTE: It is vital to remember that when an item is multi-celled, the root cell (i.e. the top-left cell)
-            //is stretched over all others and thus it is the only one that can be interacted with so it will always
-            //be the cell passed to this function as 'clickedCellView'.
-
-            //get the actual cell grabbed by and store that offset from the top-left cell of the item,
-            //we'll need it later for placement calculations
-            var offset = CalculateCellOffsetFromLocalCoords(clickedCellView, evt.localPosition);
-            CellOffsetX = offset.x;
-            CellOffsetY = offset.y;
-            PointerOffsetX = (int)evt.localPosition.x;
-            PointerOffsetY = (int)evt.localPosition.y;
 
             //we are removing the item from the view but not the model. that way if something goes catastrophically wrong
             //we can recover the view by simply pushing the full model back in to update it. maybe. i think.
@@ -153,7 +140,6 @@ namespace PGIA
                 return;
             }
 
-            //Assert.IsNull(destSlot.Slot.Item); //we don't use this cause we haven't actually moved the fucker yet
             Assert.IsNotNull(Item);
 
             //first we need to actually put the item back in the visuals otherwise bad things will happen
@@ -161,7 +147,8 @@ namespace PGIA
 
             //now we can request an actual model-backed move which should
             //propgate the visual updates for both src and dest models.
-            GridView.RequestMoveItem(Item, clickedCellView.GridView, clickedCellView.X - CellOffsetX, clickedCellView.Y - CellOffsetY);
+            var region = CalculateBestFitCells(evt.localPosition, clickedCellView, Item);
+            GridView.RequestMoveItem(Item, clickedCellView.GridView, region.x, region.y);
             Cancel();
         }
 
@@ -188,7 +175,7 @@ namespace PGIA
         {
             if (!IsDragging)
             {
-                LastHoveredCells = CoveredCells(null, cellView, 0, 0);
+                LastHoveredCells = new List<GridCellView> { cellView.RootCellView ?? cellView };
                 TintLastHoveredCells(cellView.GridView.Shared.HilightColorBackground, cellView.GridView.Shared.HilightColorIcon);
             }
 
@@ -228,19 +215,6 @@ namespace PGIA
 
         #region Private Methods
         /// <summary>
-        /// Helper method to figure out which cell was actually clicked in a multi-celled item.
-        /// </summary>
-        /// <param name="local"></param>
-        /// <returns></returns>
-        Vector2Int CalculateCellOffsetFromLocalCoords(GridCellView rootCell, Vector2 local)
-        {
-            return new Vector2Int(
-                (int)local.x / (int)rootCell.GridView.CellWidth,
-                (int)local.y / (int)rootCell.GridView.CellHeight
-                );
-        }
-
-        /// <summary>
         /// 
         /// </summary>
         /// <param name="evt"></param>
@@ -250,7 +224,7 @@ namespace PGIA
             //clear out previous cells if any
             TintLastHoveredCells(cellView.GridView.Shared.DefaultColorBackground, cellView.GridView.Shared.DefaultColorIcon);
 
-            var region = new RectInt(cellView.X - CellOffsetX, cellView.Y - CellOffsetY, Item.Size.x, Item.Size.y);
+            var region = CalculateBestFitCells(localPosition, cellView, Item);
             Color bgColor;
             Color iconTint;
             if (cellView.GridView.Model.CanMoveItemToLocation(Item, region))
@@ -264,15 +238,8 @@ namespace PGIA
                 iconTint = cellView.GridView.Shared.InvalidColorIcon;
             }
 
-
-            //we have two potential problems here
-            //1) the cellView is stretched over others so we don't have knowledge of the 'true' overlapped cells.
-            //2) the covered cells that we calculate below might include one such overlapped cell in which case we'd also
-            //   want the overlapper itself.
-            //In order to fix this we need to find the true cell being hovered regardless of overlap
-            var trueHoveredCell = FindHoveredGridCell(cellView.CellUI.LocalToWorld(localPosition), cellView.GridView);
-
-            LastHoveredCells = CoveredCells(Item, trueHoveredCell, CellOffsetX, CellOffsetY);
+            LastHoveredCells = cellView.GridView.GetCellViews(cellView.GridView.Model.GridWidth, region);
+            AdjustListForOverlappedCells(LastHoveredCells);
             TintLastHoveredCells(bgColor, iconTint);
         }
 
@@ -311,65 +278,82 @@ namespace PGIA
         /// <param name="y"></param>
         void SetCursorPosition(float x, float y)
         {
-            CursorRoot.style.left = new StyleLength(x - PointerOffsetX);
-            CursorRoot.style.top = new StyleLength(y - PointerOffsetY);
+            CursorRoot.style.left = new StyleLength(x - (CursorRoot.style.width.value.value * 0.5f));
+            CursorRoot.style.top = new StyleLength(y - (CursorRoot.style.height.value.value * 0.5f));
         }
         #endregion
 
-
+        
         #region Static Helper Methods
         /// <summary>
-        /// Due to the fact that multi-cell items display their item by stetching the first cell
-        /// of the region over the others it becomes difficult to determine the actual within
-        /// the grid itself that would be hovered in such situations.
+        /// Calculates the best fit location of cells based on the pointer location. This is used to
+        /// provide a more natural feeling when selecting where items will drop to on the grid.
         /// </summary>
-        /// <param name=""></param>
+        /// <param name="localPos"></param>
+        /// <param name="cellView"></param>
         /// <returns></returns>
-        static GridCellView FindHoveredGridCell(Vector2 pointerWorld, GridView gridView)
+        static RectInt CalculateBestFitCells(Vector2 localPos, GridCellView cellView, IGridItemModel draggedItem)
         {
-            pointerWorld = gridView.GridRootUI.WorldToLocal(pointerWorld);
-            pointerWorld -= gridView.GridLocalOffset;
-            pointerWorld.x = Mathf.Max(1, pointerWorld.x);
-            pointerWorld.y = Mathf.Max(1, pointerWorld.y);
-            pointerWorld.x = Mathf.Min(pointerWorld.x, gridView.GridMaxPoint.x);
-            pointerWorld.y = Mathf.Min(pointerWorld.y, gridView.GridMaxPoint.y);
+            if (draggedItem == null)
+                return new RectInt(cellView.X, cellView.Y, 1, 1);
 
+            int offsetX = cellView.X;
+            int offsetY = cellView.Y;
+            int w = draggedItem.Size.x;
+            int h = draggedItem.Size.y;
 
-            var cellHoveredX = (int)pointerWorld.x / (int)gridView.CellWidth;
-            var cellHoveredY = (int)pointerWorld.y / (int)gridView.CellHeight;
+            int gridWidth = cellView.GridView.Model.GridWidth;
+            int gridHeight = cellView.GridView.Model.GridHeight;
+            Vector2 normalized = new(localPos.x / cellView.GridView.CellWidth, localPos.y / cellView.GridView.CellHeight);
+            float halfWay = 0.5f;
 
-            //this result can give us results beyond the bounds of the grid, clamp that here
-            if (cellHoveredX >= gridView.Model.GridWidth)
-                cellHoveredX = gridView.Model.GridWidth - 1;
-            if (cellHoveredY >= gridView.Model.GridHeight)
-                cellHoveredY = gridView.Model.GridHeight - 1;
+            if (w > 1)
+            {
+                if ((w & 0x1) == 1) offsetX -= (int)(w / 2); //odd width
+                else if (normalized.x < halfWay) offsetX -= (int)(w / 2); //even width
+                else offsetX -= (int)(w / 2) - 1; //even width
+            }
+            if (h > 1)
+            {
+                if ((h & 0x1) == 1) offsetY -= (int)(h / 2); //odd height
+                else if (normalized.y < halfWay) offsetY -= (int)(h / 2); //even height
+                else offsetY -= (int)(h / 2) - 1; //even height
+            }
 
-            return gridView.GetCellView(gridView.Model.GridWidth, cellHoveredX, cellHoveredY);
+            //limit the final location to the bounds of the grid
+            offsetX = Mathf.Max(0, offsetX);
+            if (offsetX + w >= gridWidth)
+                offsetX = gridWidth - w;
+
+            offsetY = Mathf.Max(0, offsetY);
+            if (offsetY + h > gridHeight)
+                offsetY = gridHeight - h;
+
+            return new RectInt(offsetX, offsetY, w, h);
         }
 
         /// <summary>
-        /// 
+        /// Given a list of cells, this will be sure to include any root cells of multi-celled items who's children are
+        /// in the initial list. It will also remove those children so as not to cause duplicated effects. This method
+        /// is primarily for figuring out which cells in a RectInt region actually need hilighting applied.
         /// </summary>
-        /// <param name="destCell"></param>
-        /// <param name="xCellOffset"></param>
-        /// <param name="yCellOffset"></param>
-        /// <returns></returns>
-        static List<GridCellView> CoveredCells(IGridItemModel item, GridCellView destCellView, int xCellOffset, int yCellOffset)
+        /// <param name="cells"></param>
+        static void AdjustListForOverlappedCells(List<GridCellView> cells)
         {
-            var region = new RectInt(destCellView.X - xCellOffset, destCellView.Y - yCellOffset, item?.Size.x ?? 1, item?.Size.y ?? 1);
-            region = destCellView.GridView.Model.ClipRegion(region);
-            var rawCells = destCellView.GridView.GetCellViews(destCellView.GridView.Model.GridWidth, region);
-
-            //we also need to account for any cells in the list that may be strecthing over
-            //other cells or are being stretched over themselves due to multi-celled items.
-            TempList1.Clear();
-            foreach (var cell in rawCells)
+            foreach (var cell in cells)
             {
-                if (cell.RootCellView != null)
+                if (cell.RootCellView != null && !TempList2.Contains(cell))
+                {
                     TempList1.Add(cell.RootCellView);
+                    TempList2.Add(cell);
+                }
             }
-            rawCells.AddRange(TempList1);
-            return rawCells;
+
+            cells.AddRange(TempList1);
+            foreach (var cell in TempList2)
+                cells.Remove(cell);
+            TempList1.Clear();
+            TempList2.Clear();
         }
         #endregion
 

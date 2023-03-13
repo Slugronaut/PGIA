@@ -1,4 +1,5 @@
 using Sirenix.OdinInspector;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -16,8 +17,6 @@ namespace PGIA
     ///     -reference mode, for things like hotbars. doesn't remove item from source when it accepts it
     ///     -filter asset, a list of item categories that are not allowed in a given slot
     ///     -instance limiting - only allow certain amount of each type of item
-    ///     -stacking
-    ///     -stack splitting
     /// </summary>
     [System.Serializable]
     public class GridModel : IGridModel
@@ -111,6 +110,11 @@ namespace PGIA
         [SerializeField][HideInInspector] public UnityEvent<IGridModel, IGridItemModel> _OnDroppedItem = new();
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => _OnDroppedItem; set => _OnDroppedItem = value; }
 
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, IGridItemModel> _OnStackItem = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackedItem { get => _OnStackItem; set => _OnStackItem = value; }
+
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, IGridItemModel> _OnStackSplitItem = new();
+        [ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackSplitItem { get => _OnStackSplitItem; set => _OnStackSplitItem = value; }
         #endregion
 
 
@@ -122,7 +126,8 @@ namespace PGIA
 
         #region Private Methods
         /// <summary>
-        /// 
+        /// Initialize the model grid using the grid width and height already provided.
+        /// Mostly exists as an easy way to construct this grid while matching the interface of a monobehaviour-based version.
         /// </summary>
         public void OnEnable()
         {
@@ -314,6 +319,7 @@ namespace PGIA
         /// <param name="item"></param>
         public void DropItem(IGridItemModel item)
         {
+            //if the item has a location in this model, also fire the remove events
             var loc = GetLocation(item);
             if (loc != null)
             {
@@ -325,6 +331,101 @@ namespace PGIA
             ReflectiveSetContainer(item, null);
             OnDroppedItem.Invoke(this, item);
             item.OnDroppedItem.Invoke(this, item);
+        }
+
+        /// <summary>
+        /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
+        /// If any cancellation action occur null is returned and the draggedItem and dropModel remain untouched.
+        /// </summary>
+        /// <param name="swapItem">The item in the dest model that is going to be swapped out for the draggedItem. It is assumed this item has been obtained via <see cref="IGridModel.CheckForSwappableItem(IGridItemModel, int, int)"/>.</param>
+        /// <param name="draggedItem">The item currently being drag n dropped.</param>
+        /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
+        /// <returns></returns>
+        public bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion)
+        {
+            if (swapItem != null)
+            {
+                var swappedItemOriginalRegion = GetLocation(swapItem);
+                Assert.IsTrue(swappedItemOriginalRegion.HasValue);
+
+                if (!RemoveItem(swapItem))
+                    return false;
+
+                if (!StoreItem(draggedItem, dropRegion))
+                {
+                    if (!StoreItem(swapItem, swappedItemOriginalRegion.Value))
+                    {
+                        //boy oh boy if this fails we are fucked, just drop the item and let the game figure out what to do with it, I guess?
+                        var model = swapItem.Container ?? this;
+                        model.DropItem(swapItem);
+                    }
+                    return false;
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="incoming"></param>
+        /// <param name="receiver"></param>
+        /// <param name="qty"></param>
+        /// <returns></returns>
+        public int StackItems(IGridItemModel incoming, IGridItemModel receiver, int qty)
+        {
+            Assert.IsNotNull(incoming);
+            Assert.IsNotNull(receiver);
+            Assert.IsTrue(qty > 0);
+            if (!incoming.Shared.IsStackable || !receiver.Shared.IsStackable) return -1;
+            if (incoming.Shared.StackId != receiver.Shared.StackId) return -1;
+            if (incoming.StackCount < qty) return -1;
+
+            var maxToMove = Mathf.Min(qty, receiver.MaxStackCount - receiver.StackCount);
+            incoming.StackCount -= maxToMove;
+            receiver.StackCount += maxToMove;
+
+            OnStackedItem.Invoke(this, incoming, receiver);
+            incoming.OnStackedItem.Invoke(this, incoming, receiver);
+            receiver.OnStackedItem.Invoke(this, incoming, receiver);
+            return maxToMove;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="qty"></param>
+        /// <param name="instantiateAction">A function to execute that will generate a new item.</param>
+        /// <returns></returns>
+        public IGridItemModel SplitStackItem(IGridItemModel item, int qty, Func<IGridItemModel> instantiateAction)
+        {
+            Assert.IsNotNull(item);
+            Assert.IsNotNull(instantiateAction);
+            Assert.IsTrue(item.Shared.IsStackable);
+            Assert.IsTrue(item.StackCount >= qty);
+
+            if(item.StackCount == qty)
+            {
+                //let's play a dirty trick here, remove this item from the inventory and then return it as our 'new' stack
+                if (!RemoveItem(item)) return null;
+                OnStackSplitItem.Invoke(this, item, item);
+                item.OnStackSplitItem.Invoke(this, item, item);
+                return item;
+            }
+
+            var newItem = instantiateAction();
+            Assert.IsNotNull(newItem);
+            Assert.IsTrue(newItem.Shared.IsStackable);
+            item.StackCount -= qty;
+            newItem.StackCount = qty;
+
+            OnStackSplitItem.Invoke(this, item, newItem);
+            item.OnStackSplitItem.Invoke(this, item, newItem);
+            newItem.OnStackSplitItem.Invoke(this, item, newItem);
+            return newItem;
         }
 
         /// <summary>
@@ -448,18 +549,6 @@ namespace PGIA
         }
 
         /// <summary>
-        /// Returns true if the item can be moved to the given location within the given model.
-        /// The item ignores itself when checking to see if a cell is available.
-        /// </summary>
-        /// <param name="item"></param>
-        /// <param name="region"></param>
-        public bool CanMoveItemToLocation(IGridItemModel item, RectInt region)
-        {
-            if (!ValidateRegion(region)) return false;
-            return IsLocationEmpty(region, item);
-        }
-
-        /// <summary>
         /// Clips a rect to fit within the confines of this model's grid bounds.
         /// Returns null if the source region is not within the grid at all.
         /// </summary>
@@ -473,6 +562,42 @@ namespace PGIA
             int yMax = Mathf.Min(region.yMax, GridHeight);
 
             return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
+        }
+
+        /// <summary>
+        /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        public RectInt? FindOpenSpace(int width, int height)
+        {
+            RectInt region = new(0, 0, width, height);
+
+            for (int y = 0; y < GridHeight; y++)
+            {
+                for (int x = 0; x < GridWidth; x++)
+                {
+                    region.x = x;
+                    region.y = y;
+                    if (ValidateRegion(region) && IsLocationEmpty(region))
+                        return region;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns true if the item can be moved to the given location within the given model.
+        /// The item ignores itself when checking to see if a cell is available.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="region"></param>
+        public bool CanMoveItemToLocation(IGridItemModel item, RectInt region)
+        {
+            if (!ValidateRegion(region)) return false;
+            return IsLocationEmpty(region, item);
         }
 
         /// <summary>
@@ -501,62 +626,27 @@ namespace PGIA
         }
 
         /// <summary>
-        /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
+        /// 
         /// </summary>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
+        /// <param name="item"></param>
+        /// <param name="xPos"></param>
+        /// <param name="yPos"></param>
         /// <returns></returns>
-        public RectInt? FindOpenSpace(int width, int height)
+        public IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos)
         {
-            RectInt region = new(0, 0, width, height);
+            if (item.Shared.MaxStackSize < 2) return null;
 
-            for (int y = 0; y < GridHeight; y++)
-            {
-                for (int x = 0; x < GridWidth; x++)
-                {
-                    region.x = x;
-                    region.y = y;
-                    if (ValidateRegion(region) && IsLocationEmpty(region))
-                        return region;
-                }
-            }
+            //first, we have to ensure that there is exactly only one item here
+            //we can find out using the swap check method
+            var stackItem = CheckForSwappableItem(item, xPos, yPos);
+            if (stackItem == null) return null;
 
-            return null;
+            //now let's compare stackability
+            if (stackItem.MaxStackCount < 2) return null;
+            if(stackItem.Shared.StackId.Hash != item.Shared.StackId.Hash) return null;
+            return stackItem;
         }
 
-        /// <summary>
-        /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
-        /// If any cancellation action occur null is returned and the draggedItem and dropModel remain untouched.
-        /// </summary>
-        /// <param name="swapItem">The item in the dest model that is going to be swapped out for the draggedItem. It is assumed this item has been obtained via <see cref="IGridModel.CheckForSwappableItem(IGridItemModel, int, int)"/>.</param>
-        /// <param name="draggedItem">The item currently being drag n dropped.</param>
-        /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
-        /// <returns></returns>
-        public bool Swap(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion)
-        {
-            if (swapItem != null)
-            {
-                var swappedItemOriginalRegion = GetLocation(swapItem);
-                Assert.IsTrue(swappedItemOriginalRegion.HasValue);
-
-                if (!RemoveItem(swapItem))
-                    return false;
-
-                if (!StoreItem(draggedItem, dropRegion))
-                {
-                    if (!StoreItem(swapItem, swappedItemOriginalRegion.Value))
-                    {   
-                        //boy oh boy if this fails we are fucked, just drop the item and let the game figure out what to do with it, I guess?
-                        var model = swapItem.Container ?? this;
-                        model.DropItem(swapItem);
-                    }
-                    return false;
-                }
-                return true;
-            }
-
-            return false;
-        }
         #endregion
 
 

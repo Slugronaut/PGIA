@@ -12,7 +12,7 @@ namespace PGIA
     public class GridItemModel : IGridItemModel
     {
         [PropertyOrder(-1)]
-        public int MaxStackCount { get; set; } = 1;
+        public int MaxStackCount { get => _Shared.MaxStackSize; }
         [PropertyOrder(-1)]
         public int StackCount { get; set; } = 1;
         [PropertyOrder(-1)]
@@ -26,6 +26,26 @@ namespace PGIA
         public InventoryItemAsset Shared { get => _Shared; private set => _Shared = value; }
         public Vector2Int Size => _Shared.Size;
         public IGridModel Container { get; private set; } //set via GridModel
+
+
+        /// <summary>
+        /// Primarily here as a means to allow the mono-behaviour version to initialize.
+        /// Generally you should use <see cref="GridItemModel(InventoryItemAsset shared)"/> 
+        /// instead if you are manually instantiating this object.
+        /// </summary>
+        public GridItemModel()
+        {
+
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="shared"></param>
+        public GridItemModel(InventoryItemAsset shared)
+        {
+            _Shared = shared;
+        }
 
         #region Events
         [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem = new();
@@ -48,6 +68,13 @@ namespace PGIA
 
         [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnDroppedItem = new();
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => _OnDroppedItem; set => _OnDroppedItem = value; }
+
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, IGridItemModel> _OnStackedItem = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackedItem { get => _OnStackedItem; set => _OnStackedItem = value; }
+
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, IGridItemModel> _OnStackSplitItem = new();
+        [ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackSplitItem { get => _OnStackSplitItem; set => _OnStackSplitItem = value; }
+
         #endregion
     }
 }

@@ -1,4 +1,5 @@
 using Sirenix.OdinInspector;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -47,6 +48,9 @@ namespace PGIA
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get => BackingModel.OnRemovedItem; set => BackingModel.OnRemovedItem = value; }
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get => BackingModel.OnRemoveRejected; set => BackingModel.OnRemoveRejected = value; }
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => BackingModel.OnDroppedItem; set => BackingModel.OnDroppedItem = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackedItem { get => BackingModel.OnStackedItem; set => BackingModel.OnStackedItem = value; }
+        [ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackSplitItem { get => BackingModel.OnStackSplitItem; set => BackingModel.OnStackSplitItem = value; }
+        
         #endregion
 
 
@@ -105,6 +109,23 @@ namespace PGIA
         /// removed from that system.
         /// <param name="item"></param>
         public void DropItem(IGridItemModel item) => BackingModel.DropItem(item);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="incoming"></param>
+        /// <param name="receiver"></param>
+        /// <param name="qty"></param>
+        /// <returns></returns>
+        public int StackItems(IGridItemModel incoming, IGridItemModel receiver, int qty) => BackingModel.StackItems(incoming, receiver, qty);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="qty"></param>
+        /// <returns></returns>
+        public IGridItemModel SplitStackItem(IGridItemModel item, int qty, Func<IGridItemModel> creationAction) => BackingModel.SplitStackItem(item, qty, creationAction);
 
         /// <summary>
         /// Ensures that all slots within the given region are indeed empty.
@@ -168,6 +189,22 @@ namespace PGIA
         public void SortInventory() => BackingModel.SortInventory();
 
         /// <summary>
+        /// Clips a rect to fit within the confines of this model's grid bounds.
+        /// Returns null if the source region is not within the grid at all.
+        /// </summary>
+        /// <param name="region"></param>
+        /// <returns></returns>
+        public RectInt ClipRegion(RectInt region) => BackingModel.ClipRegion(region);
+
+        /// <summary>
+        /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        public RectInt? FindOpenSpace(int width, int height) => BackingModel.FindOpenSpace(width, height);
+
+        /// <summary>
         /// Returns true if the item can be moved to the given location within the given model.
         /// The item ignores itself when checking to see if a cell is available.
         /// </summary>
@@ -176,12 +213,14 @@ namespace PGIA
         public bool CanMoveItemToLocation(IGridItemModel item, RectInt region) => BackingModel.CanMoveItemToLocation(item, region);
 
         /// <summary>
-        /// Clips a rect to fit within the confines of this model's grid bounds.
-        /// Returns null if the source region is not within the grid at all.
+        /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
+        /// If any cancellation action occur null is returned and the draggedItem and dropModel remain untouched.
         /// </summary>
-        /// <param name="region"></param>
+        /// <param name="swapItem">The item in the dest model that is going to be swapped out for the draggedItem. It is assumed this item has been obtained via <see cref="IGridModel.CheckForSwappableItem(IGridItemModel, int, int)"/>.</param>
+        /// <param name="draggedItem">The item currently being drag n dropped.</param>
+        /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
         /// <returns></returns>
-        public RectInt ClipRegion(RectInt region) => BackingModel.ClipRegion(region);
+        public bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion) => BackingModel.SwapItems(swapItem, draggedItem, dropRegion);
 
         /// <summary>
         /// Checks a region of space to see if there is exactly 1 IGridItemModel within
@@ -195,22 +234,14 @@ namespace PGIA
         public IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos) => BackingModel.CheckForSwappableItem(item, xPos, yPos);
 
         /// <summary>
-        /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
+        /// 
         /// </summary>
-        /// <param name="width"></param>
-        /// <param name="height"></param>
+        /// <param name="item"></param>
+        /// <param name="xPos"></param>
+        /// <param name="yPos"></param>
         /// <returns></returns>
-        public RectInt? FindOpenSpace(int width, int height) => BackingModel.FindOpenSpace(width, height);
+        public IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos) => BackingModel.CheckForSwappableItem(item, xPos, yPos);
 
-        /// <summary>
-        /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
-        /// If any cancellation action occur null is returned and the draggedItem and dropModel remain untouched.
-        /// </summary>
-        /// <param name="swapItem">The item in the dest model that is going to be swapped out for the draggedItem. It is assumed this item has been obtained via <see cref="IGridModel.CheckForSwappableItem(IGridItemModel, int, int)"/>.</param>
-        /// <param name="draggedItem">The item currently being drag n dropped.</param>
-        /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
-        /// <returns></returns>
-        public bool Swap(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion) => BackingModel.Swap(swapItem, draggedItem, dropRegion);
         #endregion
 
     }

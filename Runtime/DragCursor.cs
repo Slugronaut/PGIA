@@ -12,10 +12,14 @@ namespace PGIA
     /// 
     /// TODO:
     ///     -problem when overlapping odd-numbered mutli-cell items, tends to drift too far
-    ///     -drag icon size getting fucked up during swap event
-    ///     -stacking
-    ///     -stack splitting
-    ///     
+    ///     -stacking process:
+    ///         -1) target has enough room, source is destroyed
+    ///         -2) target does not have enough room, source returns to it's destintion in full
+    ///             -if destination not available, drop total
+    ///         -3) target has partial room, source returned to destination in part
+    ///             -if destination jot available, drop difference
+    ///             
+    ///     -stack splitting process
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
     public class DragCursor : ScriptableObject
@@ -159,7 +163,7 @@ namespace PGIA
                 var swapImageHeight = rootCell.CellUI.style.height;
 
                 //start the process of moving
-                if(!clickedCellView.GridView.Model.Swap(swapItem, Item, region))
+                if(!clickedCellView.GridView.Model.SwapItems(swapItem, Item, region))
                 {
                     Cancel();
                     return;

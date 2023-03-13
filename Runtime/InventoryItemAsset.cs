@@ -9,11 +9,23 @@ namespace PGIA
     [CreateAssetMenu(fileName = "Inventory Item", menuName = "PGIA/Inventory Item")]
     public class InventoryItemAsset : ScriptableObject
     {
+        [Tooltip("The display name of this item.")]
         public HashedString Id;
-        public string Description;
-        public float Weight;
-        public Sprite Icon;
+        [Tooltip("Primaryily used to filter items. Can be used for other game-related systems that need to categorically search or sort items.")]
         public HashedString Category;
-        public Vector2Int Size;
+        [Tooltip("This id is used to determine if two items can be stacked together.")]
+        public HashedString StackId;
+        [Tooltip("Used to determine how many instances of this kind of item can be combine into a single location. Any value less than 2 implies that the item is not stackable.")]
+        public int MaxStackSize = 0;
+        [Tooltip("A description of this item. Not needed in all situations by available for those that do.")]
+        public string Description;
+        [Tooltip("A general-purpose weight field. Not used specifically by PGIA but common enough that it was made available by default.")]
+        public float Weight;
+        [Tooltip("The icon to display in the grid view.")]
+        public Sprite Icon;
+        [Tooltip("The size of the item in grid cells. Should never be smaller than 1x1.")]
+        public Vector2Int Size = new(1,1);
+
+        public bool IsStackable => MaxStackSize > 1;
     }
 }

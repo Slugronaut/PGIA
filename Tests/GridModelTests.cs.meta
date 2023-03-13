@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 8d5a853892f189341bd5824b1da59f64
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - ItemAsset1x1_001: {fileID: 11400000, guid: e2d51357c40a2e544b693d9dc09da415, type: 2}
+  - ItemAsset2x2_001: {fileID: 11400000, guid: f988a2c161f2a6447a7fab2806b2ac87, type: 2}
+  - StackableItemAsset1x1_001: {fileID: 11400000, guid: 22bced147638d7344b5aa477dbe68952,
+      type: 2}
+  - StackableItemAsset1x1_002: {fileID: 11400000, guid: bfcb9fd9ed9c3604483cfcefdd136dbe,
+      type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

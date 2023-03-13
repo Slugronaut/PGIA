@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -9,11 +10,11 @@ namespace PGIA
     /// </summary>
     public interface IGridModel
     {
-        public Vector2Int GridSize { get; set; }
-        public bool ShrinkItemWidths { get; set; }
-        public bool ShrinkItemHeights { get; set; }
-        public int GridWidth { get; }
-        public int GridHeight { get; }
+        Vector2Int GridSize { get; set; }
+        bool ShrinkItemWidths { get; set; }
+        bool ShrinkItemHeights { get; set; }
+        int GridWidth { get; }
+        int GridHeight { get; }
         IEnumerable<IGridItemModel> Contents { get; }
 
         void OnEnable();
@@ -21,6 +22,9 @@ namespace PGIA
         bool RemoveItem(IGridItemModel item);
         void ForceRemoveItem(IGridItemModel item);
         void DropItem(IGridItemModel item);
+        bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion);
+        int StackItems(IGridItemModel incoming, IGridItemModel receiver, int qty);
+        IGridItemModel SplitStackItem(IGridItemModel item, int qty, Func<IGridItemModel> instantiateAction);
         bool IsLocationEmpty(RectInt region);
         bool IsLocationEmpty(RectInt region, IGridItemModel excludedItem);
         bool ValidateRegion(RectInt region);
@@ -29,20 +33,22 @@ namespace PGIA
         GridCellModel FindCell(IGridItemModel item);
         RectInt? GetLocation(IGridItemModel item);
         void SortInventory();
-        bool CanMoveItemToLocation(IGridItemModel item, RectInt region);
         RectInt ClipRegion(RectInt region);
-        IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos);
         RectInt? FindOpenSpace(int width, int height);
-        public bool Swap(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion);
+        bool CanMoveItemToLocation(IGridItemModel item, RectInt region);
+        IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos);
+        IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos);
 
-        public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get; set; }
+        UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackedItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackSplitItem { get; set; }
 
     }
 }

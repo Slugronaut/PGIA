@@ -8,7 +8,7 @@ namespace PGIA
     /// </summary>
     public interface IGridItemModel
     {
-        int MaxStackCount { get; set; }
+        int MaxStackCount { get; }
         int StackCount { get; set; }
         System.Guid Guid { get; }
         InventoryItemAsset Shared { get; }
@@ -22,5 +22,7 @@ namespace PGIA
         UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get; set; }
         UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get; set; }
         UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackedItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackSplitItem { get; set; }
     }
 }

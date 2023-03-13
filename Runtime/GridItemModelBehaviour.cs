@@ -12,7 +12,7 @@ namespace PGIA
     public class GridItemModelBehaviour : MonoBehaviour, IGridItemModel
     {
         [PropertyOrder(-1)]
-        public int MaxStackCount { get => BackingModel.MaxStackCount; set => BackingModel.MaxStackCount = value; }
+        public int MaxStackCount { get => BackingModel.MaxStackCount; }
         [PropertyOrder(-1)]
         public int StackCount { get => BackingModel.StackCount; set => BackingModel.StackCount = value; }
         [PropertyOrder(-1)]
@@ -55,6 +55,8 @@ namespace PGIA
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get => BackingModel.OnRemovedItem; set => BackingModel.OnRemovedItem = value; }
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get => BackingModel.OnRemoveRejected; set => BackingModel.OnRemoveRejected = value; }
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => BackingModel.OnDroppedItem; set => BackingModel.OnDroppedItem = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackedItem { get => BackingModel.OnStackedItem; set => BackingModel.OnStackedItem = value; }
+        [ShowInInspector][FoldoutGroup("Stack Events")] public UnityEvent<IGridModel, IGridItemModel, IGridItemModel> OnStackSplitItem { get => BackingModel.OnStackSplitItem; set => BackingModel.OnStackSplitItem = value; }
 
         #endregion
     }

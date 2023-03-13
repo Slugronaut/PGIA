@@ -15,11 +15,12 @@ namespace PGIA
         Vector2Int Size { get; }
         IGridModel Container { get; } //do we actually need this?
 
-        public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get; set; }
-        public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get; set; }
+        UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get; set; }
+        UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get; set; }
     }
 }

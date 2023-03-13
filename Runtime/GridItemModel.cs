@@ -28,24 +28,26 @@ namespace PGIA
         public IGridModel Container { get; private set; } //set via GridModel
 
         #region Events
-        [Space(12)]
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem;
-        [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => _OnWillStoreItem; set => _OnWillStoreItem = value; }
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => _OnWillStoreItem; set => _OnWillStoreItem = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoredItem;
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoredItem = new();
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get => _OnStoredItem; set => _OnStoredItem = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoreRejected;
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoreRejected = new();
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get => _OnStoreRejected; set => _OnStoreRejected = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillRemoveItem;
-        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get => _OnWillRemoveItem; set => _OnWillRemoveItem = value; }
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillRemoveItem = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get => _OnWillRemoveItem; set => _OnWillRemoveItem = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnRemovedItem;
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnRemovedItem = new();
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get => _OnRemovedItem; set => _OnRemovedItem = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnRemoveRejected;
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnRemoveRejected = new();
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get => _OnRemoveRejected; set => _OnRemoveRejected = value; }
+
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnDroppedItem = new();
+        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => _OnDroppedItem; set => _OnDroppedItem = value; }
         #endregion
     }
 }

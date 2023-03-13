@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
-using UnityEditor.Graphs;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -11,9 +11,10 @@ namespace PGIA
     /// To be shared between ModelViews, this represents the ircon of an item as it is being dragged around.
     /// 
     /// TODO:
-    ///     -slight difference between hilight calculation and the actual cell that will be clicked when dropping items
-    ///     -'bumping' - re-adjusting multi-cell drop locations to account for bounds of grid
-    ///     -item swapping
+    ///     -problem when overlapping odd-numbered mutli-cell items, tends to drift too far
+    ///     -drag icon size getting fucked up during swap event
+    ///     -stacking
+    ///     -stack splitting
     ///     
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
@@ -30,6 +31,7 @@ namespace PGIA
 
         #region Private Fields - Drag State Info
         GridCellView SourceCellView;
+        RectInt? SrcRegion;
         IGridItemModel Item;
         VisualElement CursorScreen;
         VisualElement CursorRoot;
@@ -65,7 +67,7 @@ namespace PGIA
         {
             Initialized = false;
         }
-        #endif
+#endif
         #endregion
 
 
@@ -78,6 +80,7 @@ namespace PGIA
         {
             Assert.IsNotNull(cursorScreenRoot, "You must specify a valid UI Document root for the cursor container.");
             if (Initialized) return;
+            Item = null;
             Initialized = true;
             CursorScreen = cursorScreenRoot;
             CursorRoot = CursorAsset.Instantiate();
@@ -105,9 +108,12 @@ namespace PGIA
             //be the cell passed to this function as 'clickedCellView'.
 
             if (IsDragging) return;
-            if (clickedCellView.Cell.Item == null) return;
+            if (clickedCellView.Item == null) return;
 
-            Item = clickedCellView.Cell.Item;
+            var loc = clickedCellView.GridView.GetLocation(clickedCellView.Item);
+            Assert.IsTrue(loc != null);
+            Item = clickedCellView.Item;
+            SrcRegion = loc.Value;
             SourceCellView = clickedCellView;
             DragStartWorld = clickedCellView.CellUI.LocalToWorld(evt.localPosition);
             CandidateForStickyDrag = true;
@@ -117,13 +123,13 @@ namespace PGIA
             CursorRoot.style.backgroundImage = new StyleBackground(Item.Shared.Icon);
             CursorRoot.style.width = clickedCellView.CellUI.style.width;
             CursorRoot.style.height = clickedCellView.CellUI.style.height;
-            
 
-            //we are removing the item from the view but not the model. that way if something goes catastrophically wrong
-            //we can recover the view by simply pushing the full model back in to update it. maybe. i think.
-            clickedCellView.GridView.HandleRemovedItem(Item.Container, Item);
             SetCursorPosition(evt.position.x, evt.position.y);
-
+            if (!clickedCellView.GridView.RemoveItem(clickedCellView.Item))
+            {
+                ResetInternalState();
+                return;
+            }
         }
 
         /// <summary>
@@ -139,31 +145,74 @@ namespace PGIA
                 CandidateForStickyDrag = false;
                 return;
             }
-
             Assert.IsNotNull(Item);
 
-            //first we need to actually put the item back in the visuals otherwise bad things will happen
-            SourceCellView.GridView.HandleStoredItem(Item.Container, Item);
-
-            //now we can request an actual model-backed move which should
-            //propgate the visual updates for both src and dest models.
+            var clickedModel = clickedCellView.GridView.Model;
             var region = CalculateBestFitCells(evt.localPosition, clickedCellView, Item);
-            GridView.RequestMoveItem(Item, clickedCellView.GridView, region.x, region.y);
-            Cancel();
+            var swapItem = clickedModel.CheckForSwappableItem(Item, region.x, region.y);
+            if (swapItem != null)
+            {
+                //we need to find the root cell of the swap item so that we can cache the size of its icon BEFORE we move it
+                var modelRegion = clickedModel.GetLocation(swapItem).Value;
+                var rootCell = clickedCellView.GridView.GetCellViews(clickedModel.GridWidth, clickedModel.GetLocation(swapItem).Value)[0];
+                var swapImageWidth = rootCell.CellUI.style.width;
+                var swapImageHeight = rootCell.CellUI.style.height;
+
+                //start the process of moving
+                if(!clickedCellView.GridView.Model.Swap(swapItem, Item, region))
+                {
+                    Cancel();
+                    return;
+                }
+
+                //update internal state to reflect the new drag item
+                #region Swap version of BeginDrag()
+                Item = swapItem;
+                var loc = SourceCellView.GridView.Model.FindOpenSpace(Item.Size.x, Item.Size.y);
+                if (loc == null)
+                    Debug.LogWarning("During an item swap sequence ample space was lost to confirm a cancellation action. The item will be dropped " +
+                        "from the inventory and issued with the 'OnDroppedItem' event if the drag action is cancelled in this state. " +
+                        "\n\nThis is not a bug but rather a heads up about this safety feature.");
+                else SrcRegion = loc.Value;
+                SourceCellView = clickedCellView;
+                DragStartWorld = clickedCellView.CellUI.LocalToWorld(evt.localPosition);
+                CandidateForStickyDrag = true;
+                CursorRoot.style.backgroundImage = new StyleBackground(Item.Shared.Icon);
+                CursorRoot.style.width = swapImageWidth;
+                CursorRoot.style.height = swapImageHeight;
+                SetCursorPosition(evt.position.x, evt.position.y);
+                #endregion
+
+                return;
+            }
+
+
+            if (!clickedCellView.GridView.StoreItem(Item, region))
+                Cancel();
+            else ResetInternalState();
         }
 
         /// <summary>
-        /// Simply cleans up any visual effects 
+        /// Cancels an active drag operation and returns the item to its original location.
         /// </summary>
         public void Cancel()
         {
-            CursorScreen.UnregisterCallback<PointerMoveEvent>(HandleMove);
+            if (!IsDragging) return;
 
-            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
-            LastHoveredCells = null;
-            CursorRoot.style.visibility = Visibility.Hidden;
-            SourceCellView = null;
-            Item = null;
+            //put the item back where it came from, if this fails, not much we can do about it at this point
+            if (SrcRegion == null || !SourceCellView.GridView.StoreItem(Item, SrcRegion.Value))
+            {
+                var rect = SourceCellView.GridView.Model.FindOpenSpace(Item.Size.x, Item.Size.y);
+                if (!rect.HasValue || !SourceCellView.GridView.StoreItem(Item, rect.Value))
+                {
+                    Debug.LogWarning("Due to the amount of item swapping, no valid location could be found for this cancelled operation. As a result the item " +
+                        "will be expelled from the inventory entirely and the 'OnDroppedItem' event will be triggered. " +
+                        "\n\nThis is not a bug but rather a heads up about this safety feature.");
+                    var model = Item.Container ?? SourceCellView.GridView.Model;
+                    model.DropItem(Item);
+                }
+            }
+            ResetInternalState();
         }
 
         /// <summary>
@@ -215,6 +264,20 @@ namespace PGIA
 
         #region Private Methods
         /// <summary>
+        /// Shared by several methods to reset global state data to a before-dragging condition.
+        /// </summary>
+        void ResetInternalState()
+        {
+            CursorScreen.UnregisterCallback<PointerMoveEvent>(HandleMove);
+            TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
+            LastHoveredCells = null;
+            CursorRoot.style.visibility = Visibility.Hidden;
+            SourceCellView = null;
+            SrcRegion = null;
+            Item = null;
+        }
+
+        /// <summary>
         /// 
         /// </summary>
         /// <param name="evt"></param>
@@ -227,7 +290,8 @@ namespace PGIA
             var region = CalculateBestFitCells(localPosition, cellView, Item);
             Color bgColor;
             Color iconTint;
-            if (cellView.GridView.Model.CanMoveItemToLocation(Item, region))
+            if (cellView.GridView.Model.CanMoveItemToLocation(Item, region) || 
+                cellView.GridView.CheckForSwappableItem(Item, region.x, region.y) != null)
             {
                 bgColor = cellView.GridView.Shared.ValidColorBackground;
                 iconTint = cellView.GridView.Shared.ValidColorIcon;

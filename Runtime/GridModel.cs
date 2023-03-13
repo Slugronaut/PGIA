@@ -87,27 +87,30 @@ namespace PGIA
 
 
         #region Events
-        [Space(12)]
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, Vector2Int> _OnGridSizeChanged = new UnityEvent<IGridModel, Vector2Int>();
-        [ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get => _OnGridSizeChanged; set => _OnGridSizeChanged = value; }
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, Vector2Int> _OnGridSizeChanged = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get => _OnGridSizeChanged; set => _OnGridSizeChanged = value; }
 
         [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem = new UnityEvent<IGridModel, IGridItemModel, OperationCancelAction>();
-        [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => _OnWillStoreItem; set => _OnWillStoreItem = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => _OnWillStoreItem; set => _OnWillStoreItem = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoredItem = new UnityEvent<IGridModel, IGridItemModel>();
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoredItem = new();
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get => _OnStoredItem; set => _OnStoredItem = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoreRejected = new UnityEvent<IGridModel, IGridItemModel>();
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoreRejected = new();
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get => _OnStoreRejected; set => _OnStoreRejected = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillRemoveItem = new UnityEvent<IGridModel, IGridItemModel, OperationCancelAction>();
-        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get => _OnWillRemoveItem; set => _OnWillRemoveItem = value; }
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillRemoveItem = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get => _OnWillRemoveItem; set => _OnWillRemoveItem = value; }
 
-        [SerializeField][HideInInspector] public UnityEvent<IGridModel, IGridItemModel> _OnRemovedItem = new UnityEvent<IGridModel, IGridItemModel>();
+        [SerializeField][HideInInspector] public UnityEvent<IGridModel, IGridItemModel> _OnRemovedItem = new();
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get => _OnRemovedItem; set => _OnRemovedItem = value; }
 
-        [SerializeField][HideInInspector] public UnityEvent<IGridModel, IGridItemModel> _OnRemoveRejected = new UnityEvent<IGridModel, IGridItemModel>();
+        [SerializeField][HideInInspector] public UnityEvent<IGridModel, IGridItemModel> _OnRemoveRejected = new();
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get => _OnRemoveRejected; set => _OnRemoveRejected = value; }
+        
+        [SerializeField][HideInInspector] public UnityEvent<IGridModel, IGridItemModel> _OnDroppedItem = new();
+        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => _OnDroppedItem; set => _OnDroppedItem = value; }
+
         #endregion
 
 
@@ -119,22 +122,29 @@ namespace PGIA
 
         #region Private Methods
         /// <summary>
-        /// This breaks every rule of OOP or so they say but really it just makes it easier for me since
-        /// I don't have to remember or leave a comment about whether or not I should call 'remove()' from
-        /// the item or the container itself. It'll work with both using this technique. So nyeeeeah! *sticks thumb on nose*
-        /// </summary>
-        static void ReflectiveSetContainer(IGridItemModel item, IGridModel container)
-        {
-            var type = item.GetType();
-            type.GetProperty(nameof(item.Container)).SetValue(item, container);
-        }
-
-        /// <summary>
         /// 
         /// </summary>
         public void OnEnable()
         {
             ConstructGrid();
+        }
+
+        /// <summary>
+        /// Helper for enumerating all of the cells in a region on the grid.
+        /// </summary>
+        /// <param name="region"></param>
+        /// <returns></returns>
+        IEnumerable<GridCellModel> CellsInRegion(RectInt region)
+        {
+            Assert.IsTrue(ValidateRegion(region));
+
+            for (int y = region.y; y < region.y + region.height; y++)
+            {
+                for (int x = region.x; x < region.x + region.width; x++)
+                {
+                    yield return CellModels[(y * GridWidth) + x];
+                }
+            }
         }
 
         /// <summary>
@@ -285,17 +295,36 @@ namespace PGIA
         /// </summary>
         public void ForceRemoveItem(IGridItemModel item)
         {
-            if (item.Container != this)
-                return;
-
             var loc = GetLocation(item);
-            if (loc == null)
-                return;
+            if (loc != null)
+                FlagSlots(null, loc.Value);
 
-            FlagSlots(null, loc.Value);
+
             ReflectiveSetContainer(item, null);
             OnRemovedItem.Invoke(this, item);
             item.OnRemovedItem.Invoke(this, item);
+        }
+
+        /// <summary>
+        /// Similar to ForceRemoveItem, this method is used to signal that an item has been ejected
+        /// from the grid system entirely and is now at the mercy of the gamesystem as to what to do with it.
+        /// Typically RemoveItem and ForceRemove item will be used for things like swapping, trading, and moving
+        /// items around into different inventory containers. This is the point where the item is completely
+        /// removed from that system.
+        /// <param name="item"></param>
+        public void DropItem(IGridItemModel item)
+        {
+            var loc = GetLocation(item);
+            if (loc != null)
+            {
+                FlagSlots(null, loc.Value);
+                OnRemovedItem.Invoke(this, item);
+                item.OnRemovedItem.Invoke(this, item);
+            }
+
+            ReflectiveSetContainer(item, null);
+            OnDroppedItem.Invoke(this, item);
+            item.OnDroppedItem.Invoke(this, item);
         }
 
         /// <summary>
@@ -308,16 +337,9 @@ namespace PGIA
         /// <returns></returns>
         public bool IsLocationEmpty(RectInt region)
         {
-            Assert.IsTrue(ValidateRegion(region));
-
-            for (int y = region.y; y < region.y + region.height; y++)
+            foreach (var cell in CellsInRegion(region))
             {
-                for (int x = region.x; x < region.x + region.width; x++)
-                {
-                    int index = (y * GridWidth) + x;
-                    if (CellModels[index].Item != null)
-                        return false;
-                }
+                if (cell.Item != null) return false;
             }
             return true;
         }
@@ -327,20 +349,15 @@ namespace PGIA
         /// that it ignored the given item.
         /// </summary>
         /// <param name="region"></param>
-        /// <param name="item"></param>
+        /// <param name="item">The item being checked against. If a cell has this item in it it will be ignored and the cell considered empty.</param>
+        /// <param name="allowSwap">Can a single other item be in the location desitination that is valid for swapping?</param>
         /// <returns></returns>
         public bool IsLocationEmpty(RectInt region, IGridItemModel item)
         {
-            Assert.IsTrue(ValidateRegion(region));
-
-            for (int y = region.y; y < region.y + region.height; y++)
+            foreach (var cell in CellsInRegion(region))
             {
-                for (int x = region.x; x < region.x + region.width; x++)
-                {
-                    var slotItem = CellModels[(y * GridWidth) + x].Item;
-                    if (slotItem != null && slotItem != item)
-                        return false;
-                }
+                if (cell.Item != null && cell.Item != item)
+                    return false;
             }
             return true;
         }
@@ -457,7 +474,103 @@ namespace PGIA
 
             return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
         }
+
+        /// <summary>
+        /// Checks a region of space to see if there is exactly 1 IGridItemModel within
+        /// and if there is enough room for the passed item to fit in that location if it
+        /// were removed. If so, a reference to that single item is returned.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="xPos"></param>
+        /// <param name="yPos"></param>
+        /// <returns></returns>
+        public IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos)
+        {
+            var destRegion = new RectInt(xPos, yPos, item.Size.x, item.Size.y);
+
+            IGridItemModel swapItem = null;
+            foreach (var cell in CellsInRegion(destRegion))
+            {
+                if (swapItem == null && cell.Item != null)
+                    swapItem = cell.Item;
+                else if (cell.Item != null && swapItem != cell.Item)
+                    return null;
+            }
+
+            return swapItem;
+        }
+
+        /// <summary>
+        /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        public RectInt? FindOpenSpace(int width, int height)
+        {
+            RectInt region = new(0, 0, width, height);
+
+            for (int y = 0; y < GridHeight; y++)
+            {
+                for (int x = 0; x < GridWidth; x++)
+                {
+                    region.x = x;
+                    region.y = y;
+                    if (ValidateRegion(region) && IsLocationEmpty(region))
+                        return region;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
+        /// If any cancellation action occur null is returned and the draggedItem and dropModel remain untouched.
+        /// </summary>
+        /// <param name="swapItem">The item in the dest model that is going to be swapped out for the draggedItem. It is assumed this item has been obtained via <see cref="IGridModel.CheckForSwappableItem(IGridItemModel, int, int)"/>.</param>
+        /// <param name="draggedItem">The item currently being drag n dropped.</param>
+        /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
+        /// <returns></returns>
+        public bool Swap(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion)
+        {
+            if (swapItem != null)
+            {
+                var swappedItemOriginalRegion = GetLocation(swapItem);
+                Assert.IsTrue(swappedItemOriginalRegion.HasValue);
+
+                if (!RemoveItem(swapItem))
+                    return false;
+
+                if (!StoreItem(draggedItem, dropRegion))
+                {
+                    if (!StoreItem(swapItem, swappedItemOriginalRegion.Value))
+                    {   
+                        //boy oh boy if this fails we are fucked, just drop the item and let the game figure out what to do with it, I guess?
+                        var model = swapItem.Container ?? this;
+                        model.DropItem(swapItem);
+                    }
+                    return false;
+                }
+                return true;
+            }
+
+            return false;
+        }
         #endregion
 
+
+        #region Static Methods
+        /// <summary>
+        /// This breaks every rule of OOP or so they say but really it just makes it easier for me since
+        /// I don't have to remember or leave a comment about whether or not I should call 'remove()' from
+        /// the item or the container itself. It'll work with both using this technique. So nyeeeeah! *sticks thumb on nose*
+        /// </summary>
+        static void ReflectiveSetContainer(IGridItemModel item, IGridModel container)
+        {
+            var type = item.GetType();
+            type.GetProperty(nameof(item.Container)).SetValue(item, container);
+        }
+        #endregion
     }
 }

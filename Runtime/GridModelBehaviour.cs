@@ -39,14 +39,14 @@ namespace PGIA
 
 
         #region Events
-        [PropertySpace(12)]
-        [ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get => BackingModel.OnGridSizeChanged; set => BackingModel.OnGridSizeChanged = value; }
-        [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => BackingModel.OnWillStoreItem; set => BackingModel.OnWillStoreItem = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get => BackingModel.OnGridSizeChanged; set => BackingModel.OnGridSizeChanged = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => BackingModel.OnWillStoreItem; set => BackingModel.OnWillStoreItem = value; }
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get => BackingModel.OnStoredItem; set => BackingModel.OnStoredItem = value; }
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get => BackingModel.OnStoreRejected; set => BackingModel.OnStoreRejected = value; }
-        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get => BackingModel.OnWillRemoveItem; set => BackingModel.OnWillRemoveItem = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillRemoveItem { get => BackingModel.OnWillRemoveItem; set => BackingModel.OnWillRemoveItem = value; }
         [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemovedItem { get => BackingModel.OnRemovedItem; set => BackingModel.OnRemovedItem = value; }
-        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get => OnRemoveRejected; set => BackingModel.OnRemoveRejected = value; }
+        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnRemoveRejected { get => BackingModel.OnRemoveRejected; set => BackingModel.OnRemoveRejected = value; }
+        [ShowInInspector][FoldoutGroup("Remove Events")] public UnityEvent<IGridModel, IGridItemModel> OnDroppedItem { get => BackingModel.OnDroppedItem; set => BackingModel.OnDroppedItem = value; }
         #endregion
 
 
@@ -96,6 +96,15 @@ namespace PGIA
         /// Forces an item to be removed from the inventory without checking for validation from outside listeners
         /// </summary>
         public void ForceRemoveItem(IGridItemModel item) => BackingModel.ForceRemoveItem(item);
+
+        /// <summary>
+        /// Similar to ForceRemoveItem, this method is used to signal that an item has been ejected
+        /// from the grid system entirely and is now at the mercy of the gamesystem as to what to do with it.
+        /// Typically RemoveItem and ForceRemove item will be used for things like swapping, trading, and moving
+        /// items around into different inventory containers. This is the point where the item is completely
+        /// removed from that system.
+        /// <param name="item"></param>
+        public void DropItem(IGridItemModel item) => BackingModel.DropItem(item);
 
         /// <summary>
         /// Ensures that all slots within the given region are indeed empty.
@@ -173,6 +182,35 @@ namespace PGIA
         /// <param name="region"></param>
         /// <returns></returns>
         public RectInt ClipRegion(RectInt region) => BackingModel.ClipRegion(region);
+
+        /// <summary>
+        /// Checks a region of space to see if there is exactly 1 IGridItemModel within
+        /// and if there is enough room for the passed item to fit in that location if it
+        /// were removed. If so, a reference to that single item is returned.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="xPos"></param>
+        /// <param name="yPos"></param>
+        /// <returns></returns>
+        public IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos) => BackingModel.CheckForSwappableItem(item, xPos, yPos);
+
+        /// <summary>
+        /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
+        /// </summary>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        public RectInt? FindOpenSpace(int width, int height) => BackingModel.FindOpenSpace(width, height);
+
+        /// <summary>
+        /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
+        /// If any cancellation action occur null is returned and the draggedItem and dropModel remain untouched.
+        /// </summary>
+        /// <param name="swapItem">The item in the dest model that is going to be swapped out for the draggedItem. It is assumed this item has been obtained via <see cref="IGridModel.CheckForSwappableItem(IGridItemModel, int, int)"/>.</param>
+        /// <param name="draggedItem">The item currently being drag n dropped.</param>
+        /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
+        /// <returns></returns>
+        public bool Swap(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion) => BackingModel.Swap(swapItem, draggedItem, dropRegion);
         #endregion
 
     }

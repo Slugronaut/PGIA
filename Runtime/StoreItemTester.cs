@@ -1,4 +1,5 @@
 using Sirenix.OdinInspector;
+using System.Collections;
 using UnityEngine;
 
 namespace PGIA.Test
@@ -9,6 +10,19 @@ namespace PGIA.Test
         public GridModelBehaviour Inventory;
         public int x = 0;
         public int y = 0;
+
+        public GridItemModelBehaviour[] AutoItems;
+
+        private IEnumerator Start()
+        {
+            yield return null;
+            foreach(var item in AutoItems)
+            {
+                var loc = Inventory.FindOpenSpace(item.Size.x, item.Size.y);
+                if (loc != null)
+                    Inventory.StoreItem(item, loc.Value);
+            }
+        }
 
         [Button("Test Store")]
         public void Store()

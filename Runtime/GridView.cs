@@ -26,12 +26,14 @@ namespace PGIA
             get => _Model;
             set
             {
+#pragma warning disable CS0253 // Possible unintended reference comparison; right hand side needs cast
                 if (_Model != value)
                 {
                     _Model = (GridModelBehaviour)value; //again, casting to concrete type. can't be fucked
                     if (Application.isPlaying)
                         PushModelToView();
                 }
+#pragma warning restore CS0253 // Possible unintended reference comparison; right hand side needs cast
             }
         }
         [Tooltip("The document that holds the UI data.")]
@@ -361,6 +363,34 @@ namespace PGIA
             PositionCellUI(GridRootUI, firstCellView.CellUI, firstCellView.X, firstCellView.Y, 1, 1);
         }
 
+        public RectInt? GetLocation(IGridItemModel item) => Model.GetLocation(item);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public bool RemoveItem(IGridItemModel item) => Model.RemoveItem(item);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public bool StoreItem(IGridItemModel item, RectInt region) => Model.StoreItem(item, region);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="xPos"></param>
+        /// <param name="yPos"></param>
+        /// <returns></returns>
+        public IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos) => Model.CheckForSwappableItem(item, xPos, yPos);
+        #endregion
+
+
+        #region Static Methods
         /// <summary>
         /// Makes a request to the backing model to move the item.
         /// </summary>
@@ -390,6 +420,7 @@ namespace PGIA
 
             return false;
         }
+
         #endregion
 
     }

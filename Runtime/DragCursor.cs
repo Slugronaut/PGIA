@@ -137,11 +137,15 @@ namespace PGIA
         }
 
         /// <summary>
-        /// 
+        /// Not gonna lie. This fuction is some real R Kelly Doo-doo Butter. Don't even read it. Seriously. Look away! I'm too ashamed!
         /// </summary>
         public void Drop(PointerUpEvent evt, GridCellView clickedCellView)
         {
             if (!IsDragging) return; //just in case we click elsewhere without starting a drag and then release over a slot
+            Assert.IsNotNull(Item);
+
+
+            #region Sticky Drag
             if (CandidateForStickyDrag)
             {
                 TintLastHoveredCells(SourceCellView.GridView.Shared.DefaultColorBackground, SourceCellView.GridView.Shared.DefaultColorIcon);
@@ -149,21 +153,54 @@ namespace PGIA
                 CandidateForStickyDrag = false;
                 return;
             }
-            Assert.IsNotNull(Item);
+            #endregion
+
 
             var clickedModel = clickedCellView.GridView.Model;
             var region = CalculateBestFitCells(evt.localPosition, clickedCellView, Item);
+
+
+            #region Stack Check
+            var stackItem = clickedModel.CheckForStackableItem(Item, region.x, region.y);
+            if(stackItem != null)
+            {
+                Debug.Log("Stacking?");
+                //if this is less than zero, it means the stack was full. in that
+                //case we'll simply fallthrough to the swapitem logic below.
+                int qtyStacked = clickedModel.StackItems(Item, stackItem, Item.StackCount);
+                if(qtyStacked == Item.StackCount)
+                {
+                    //in this case we've completely transferred the qty so both item refs are to the same thing
+                    //we can just leave the drag and everything is golden
+                    ResetInternalState();
+                    return;
+                }
+                else if(qtyStacked > 0)
+                {
+                    //we now have and item we are dragging with the difference after the dest stack
+                    //was filled to capacity, at this point we can just leave and the drag should continue as normal.
+                }
+                else
+                {
+                    //we didn't trasnfer anything so it must have failed. just cancel
+                    Cancel();
+                    return;
+                }
+            }
+            #endregion
+
+
+            #region Swap
             var swapItem = clickedModel.CheckForSwappableItem(Item, region.x, region.y);
             if (swapItem != null)
             {
                 //we need to find the root cell of the swap item so that we can cache the size of its icon BEFORE we move it
-                var modelRegion = clickedModel.GetLocation(swapItem).Value;
                 var rootCell = clickedCellView.GridView.GetCellViews(clickedModel.GridWidth, clickedModel.GetLocation(swapItem).Value)[0];
                 var swapImageWidth = rootCell.CellUI.style.width;
                 var swapImageHeight = rootCell.CellUI.style.height;
 
                 //start the process of moving
-                if(!clickedCellView.GridView.Model.SwapItems(swapItem, Item, region))
+                if(!clickedModel.SwapItems(swapItem, Item, region))
                 {
                     Cancel();
                     return;
@@ -189,11 +226,14 @@ namespace PGIA
 
                 return;
             }
+            #endregion
 
 
+            #region Drop
             if (!clickedCellView.GridView.StoreItem(Item, region))
                 Cancel();
             else ResetInternalState();
+            #endregion
         }
 
         /// <summary>

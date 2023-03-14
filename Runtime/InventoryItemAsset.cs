@@ -13,8 +13,6 @@ namespace PGIA
         public HashedString Id;
         [Tooltip("Primaryily used to filter items. Can be used for other game-related systems that need to categorically search or sort items.")]
         public HashedString Category;
-        [Tooltip("This id is used to determine if two items can be stacked together.")]
-        public HashedString StackId;
         [Tooltip("Used to determine how many instances of this kind of item can be combine into a single location. Any value less than 2 implies that the item is not stackable.")]
         public int MaxStackSize = 0;
         [Tooltip("A description of this item. Not needed in all situations by available for those that do.")]
@@ -27,5 +25,10 @@ namespace PGIA
         public Vector2Int Size = new(1,1);
 
         public bool IsStackable => MaxStackSize > 1;
+
+        public bool CanStackWith(InventoryItemAsset item)
+        {
+            return Id.Hash == item.Id.Hash && Category.Hash == item.Category.Hash;
+        }
     }
 }

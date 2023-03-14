@@ -41,6 +41,7 @@ namespace PGIA
 
         #region Events
         [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get => BackingModel.OnGridSizeChanged; set => BackingModel.OnGridSizeChanged = value; }
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, IEnumerable<GridCellModel>> OnCellsUpdated { get => BackingModel.OnCellsUpdated; set => BackingModel.OnCellsUpdated = value; }
         [PropertySpace(12)][ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => BackingModel.OnWillStoreItem; set => BackingModel.OnWillStoreItem = value; }
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get => BackingModel.OnStoredItem; set => BackingModel.OnStoredItem = value; }
         [ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get => BackingModel.OnStoreRejected; set => BackingModel.OnStoreRejected = value; }
@@ -240,7 +241,7 @@ namespace PGIA
         /// <param name="xPos"></param>
         /// <param name="yPos"></param>
         /// <returns></returns>
-        public IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos) => BackingModel.CheckForSwappableItem(item, xPos, yPos);
+        public IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos) => BackingModel.CheckForStackableItem(item, xPos, yPos);
 
         #endregion
 

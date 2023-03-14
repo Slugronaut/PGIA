@@ -19,7 +19,7 @@ namespace PGIA
         public int GridCellsY { get => Cell.Item == null ? 0 : Cell.Item.Size.y; }
         public string QtyStr
         {
-            get => (Cell.Item == null) || (Cell.Item.MaxStackCount) < 2 ? string.Empty : Cell.Item.StackCount.ToString();
+            get => (Cell.Item == null) || (!Cell.Item.Shared.IsStackable) ? string.Empty : Cell.Item.StackCount.ToString();
         }
 
         /// <summary>

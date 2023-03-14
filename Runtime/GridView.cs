@@ -185,6 +185,19 @@ namespace PGIA
             _Model.OnGridSizeChanged.AddListener(HandleModelGridSizeChanged);
             _Model.OnStoredItem.AddListener(HandleStoredItem);
             _Model.OnRemovedItem.AddListener(HandleRemovedItem);
+            _Model.OnCellsUpdated.AddListener(HandleCellsUpdated);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="cellView"></param>
+        /// <param name="cellModel"></param>
+        void UpdateCelll(GridCellView cellView)
+        {
+            var cellUI = cellView.CellUI;
+            var stackLabel = cellUI.Q<Label>(Shared.StackQtyId);
+            stackLabel.text = cellView.QtyStr;
         }
 
         /// <summary>
@@ -196,9 +209,10 @@ namespace PGIA
             if (_Model == null || !Started) return;
 
             GridRootUI.UnregisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
-            _Model.OnGridSizeChanged.AddListener(HandleModelGridSizeChanged);
-            _Model.OnStoredItem.AddListener(HandleStoredItem);
-            _Model.OnRemovedItem.AddListener(HandleRemovedItem);
+            _Model.OnGridSizeChanged.RemoveListener(HandleModelGridSizeChanged);
+            _Model.OnStoredItem.RemoveListener(HandleStoredItem);
+            _Model.OnRemovedItem.RemoveListener(HandleRemovedItem);
+            _Model.OnCellsUpdated.RemoveListener(HandleCellsUpdated);
 
             CellViews.Clear();
             GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
@@ -305,6 +319,21 @@ namespace PGIA
             return null;
         }
 
+        // <summary>
+        /// Returns the associated cell view for the given model.
+        /// </summary>
+        /// <param name="model"></param>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        public GridCellView FindCellView(GridCellModel cellModel)
+        {
+            Assert.IsNotNull(cellModel);
+            foreach (var cellView in CellViews)
+                if (cellView.Cell == cellModel) return cellView;
+
+            return null;
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -361,6 +390,15 @@ namespace PGIA
             GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
             firstCellView.CellUI.style.backgroundImage = null;
             PositionCellUI(GridRootUI, firstCellView.CellUI, firstCellView.X, firstCellView.Y, 1, 1);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        void HandleCellsUpdated(IGridModel model, IEnumerable<GridCellModel> cells)
+        {
+            foreach (var cell in cells)
+                UpdateCelll(FindCellView(cell));
         }
 
         public RectInt? GetLocation(IGridItemModel item) => Model.GetLocation(item);

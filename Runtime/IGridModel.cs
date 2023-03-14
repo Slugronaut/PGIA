@@ -40,6 +40,7 @@ namespace PGIA
         IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos);
 
         UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get; set; }
+        UnityEvent<IGridModel, IEnumerable<GridCellModel>> OnCellsUpdated { get; set; }
         UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }
         UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get; set; }
         UnityEvent<IGridModel, IGridItemModel> OnStoreRejected { get; set; }

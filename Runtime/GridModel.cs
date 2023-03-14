@@ -89,6 +89,9 @@ namespace PGIA
         [SerializeField][HideInInspector] UnityEvent<IGridModel, Vector2Int> _OnGridSizeChanged = new();
         [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, Vector2Int> OnGridSizeChanged { get => _OnGridSizeChanged; set => _OnGridSizeChanged = value; }
 
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IEnumerable<GridCellModel>> _OnCellsUpdated = new();
+        [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, IEnumerable<GridCellModel>> OnCellsUpdated { get => _OnCellsUpdated; set => _OnCellsUpdated = value; }
+
         [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem = new UnityEvent<IGridModel, IGridItemModel, OperationCancelAction>();
         [PropertySpace(12)][ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => _OnWillStoreItem; set => _OnWillStoreItem = value; }
 
@@ -258,6 +261,7 @@ namespace PGIA
             ReflectiveSetContainer(item, this);
             OnStoredItem.Invoke(this, item);
             item.OnStoredItem.Invoke(this, item);
+            OnCellsUpdated.Invoke(this, CellsInRegion(region)); //that's a garbage yikers!
             return true;
         }
 
@@ -292,6 +296,7 @@ namespace PGIA
             item.OnRemovedItem.Invoke(this, item);
             FlagSlots(null, loc.Value);
             ReflectiveSetContainer(item, null);
+            OnCellsUpdated.Invoke(this, CellsInRegion(loc.Value)); //oof, IEnumerable<> garbage!
             return true;
         }
 
@@ -306,7 +311,8 @@ namespace PGIA
 
 
             ReflectiveSetContainer(item, null);
-            OnRemovedItem.Invoke(this, item);
+            OnRemovedItem.Invoke(this, item); 
+            OnCellsUpdated.Invoke(this, CellsInRegion(loc.Value)); //oof, IEnumerable<> garbage!
             item.OnRemovedItem.Invoke(this, item);
         }
 
@@ -324,6 +330,7 @@ namespace PGIA
             if (loc != null)
             {
                 FlagSlots(null, loc.Value);
+                OnCellsUpdated.Invoke(this, CellsInRegion(loc.Value)); //oof, IEnumerable<> garbage!
                 OnRemovedItem.Invoke(this, item);
                 item.OnRemovedItem.Invoke(this, item);
             }
@@ -368,7 +375,9 @@ namespace PGIA
         }
 
         /// <summary>
-        /// 
+        /// Adjusts the incoming and receiving stacks by the qty given. This value
+        /// can be adjusted so that the receiver will not exceed it's max stack capacity.
+        /// The actual adjustment made will be returned.
         /// </summary>
         /// <param name="incoming"></param>
         /// <param name="receiver"></param>
@@ -380,7 +389,7 @@ namespace PGIA
             Assert.IsNotNull(receiver);
             Assert.IsTrue(qty > 0);
             if (!incoming.Shared.IsStackable || !receiver.Shared.IsStackable) return -1;
-            if (incoming.Shared.StackId != receiver.Shared.StackId) return -1;
+            if (!incoming.Shared.CanStackWith(receiver.Shared)) return -1;
             if (incoming.StackCount < qty) return -1;
 
             var maxToMove = Mathf.Min(qty, receiver.MaxStackCount - receiver.StackCount);
@@ -390,6 +399,7 @@ namespace PGIA
             OnStackedItem.Invoke(this, incoming, receiver);
             incoming.OnStackedItem.Invoke(this, incoming, receiver);
             receiver.OnStackedItem.Invoke(this, incoming, receiver);
+            OnCellsUpdated.Invoke(this, CellsInRegion(GetLocation(receiver).Value)); //more garbage, yay
             return maxToMove;
         }
 
@@ -425,6 +435,7 @@ namespace PGIA
             OnStackSplitItem.Invoke(this, item, newItem);
             item.OnStackSplitItem.Invoke(this, item, newItem);
             newItem.OnStackSplitItem.Invoke(this, item, newItem);
+            OnCellsUpdated.Invoke(this, CellsInRegion(GetLocation(item).Value)); //and more garbage!
             return newItem;
         }
 
@@ -643,7 +654,7 @@ namespace PGIA
 
             //now let's compare stackability
             if (stackItem.MaxStackCount < 2) return null;
-            if(stackItem.Shared.StackId.Hash != item.Shared.StackId.Hash) return null;
+            if(!stackItem.Shared.CanStackWith(item.Shared)) return null;
             return stackItem;
         }
 

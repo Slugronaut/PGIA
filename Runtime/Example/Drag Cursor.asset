@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1be7ee1198117e54a90c82fc7a25666e, type: 3}
   m_Name: Drag Cursor
   m_EditorClassIdentifier: 
-  CursorAsset: {fileID: 0}
+  CursorAsset: {fileID: 9197481963319205126, guid: b3ff5ae5dc419b64cba0ae47873e59db,
+    type: 3}

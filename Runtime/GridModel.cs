@@ -560,22 +560,6 @@ namespace PGIA
         }
 
         /// <summary>
-        /// Clips a rect to fit within the confines of this model's grid bounds.
-        /// Returns null if the source region is not within the grid at all.
-        /// </summary>
-        /// <param name="region"></param>
-        /// <returns></returns>
-        public RectInt ClipRegion(RectInt region)
-        {
-            int xMin = Mathf.Max(region.xMin, 0);
-            int yMin = Mathf.Max(region.yMin, 0);
-            int xMax = Mathf.Min(region.xMax, GridWidth);
-            int yMax = Mathf.Min(region.yMax, GridHeight);
-
-            return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
-        }
-
-        /// <summary>
         /// Locates the first spot in the inventory with the given width and hieght and returns a region for it.
         /// </summary>
         /// <param name="width"></param>

@@ -11,6 +11,8 @@ namespace AdvLifeSim
         [Space(12)]
         [Tooltip("The name used to identify the visual element in cells when displaying stack counts.")]
         public string StackQtyId = "StackQty";
+        [Tooltip("If the pointer is pressed down and doesn't move beyond this threshold the the drag will be 'sticky' upon release. I.E. it will not immeditately be dropped but will instead require another press.")]
+        public float StickyDragMoveThreshold = 12;
 
         [Space(12)]
         [Tooltip("The color to display when hovering the pointer over an item while not dragging anything.")]

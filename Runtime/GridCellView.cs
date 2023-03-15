@@ -10,7 +10,7 @@ namespace PGIA
     {
         public IGridItemModel Item; //as much as I hate it, it makes it easier to do visual-only stuff with this
         readonly public GridCellModel Cell;
-        readonly public GridView GridView;
+        readonly public GridViewBehaviour GridView;
         readonly public VisualElement CellUI;
         readonly public int X;
         readonly public int Y;
@@ -43,7 +43,7 @@ namespace PGIA
         /// <param name="cellUI"></param>
         /// <param name="x"></param>
         /// <param name="y"></param>
-        public GridCellView(GridView gridView, GridCellModel cell, VisualElement cellUI, int x, int y)
+        public GridCellView(GridViewBehaviour gridView, GridCellModel cell, VisualElement cellUI, int x, int y)
         {
             Cell = cell;
             GridView = gridView;
@@ -65,7 +65,8 @@ namespace PGIA
         /// <param name="evt"></param>
         void HandlePointerDown(PointerDownEvent evt)
         {
-            GridView.SharedCursor.BeginDrag(evt, this);
+            if(this.Item != null)
+                GridView.BeginDrag(new DragPayload(this, evt.localPosition, evt.position));
         }
 
         /// <summary>
@@ -74,7 +75,7 @@ namespace PGIA
         /// <param name="evt"></param>
         void HandlePointerUp(PointerUpEvent evt)
         {
-            GridView.SharedCursor.Drop(evt, this);
+            GridView.Drop(this, evt.localPosition);
         }
 
         /// <summary>
@@ -84,7 +85,7 @@ namespace PGIA
         void HandlePointerEnter(PointerEnterEvent evt)
         {
             Hovered = true;
-            GridView.SharedCursor.PointerHoverEnter(evt, this);
+            GridView.PointerHoverEnter(this, evt.localPosition);
         }
 
         /// <summary>
@@ -94,7 +95,7 @@ namespace PGIA
         void HandlePointerLeave(PointerLeaveEvent evt)
         {
             Hovered = false;
-            GridView.SharedCursor.PointerHoverExit(evt, this);
+            GridView.PointerHoverExit(this, evt.localPosition);
         }
 
         /// <summary>
@@ -109,7 +110,7 @@ namespace PGIA
                 //we can't properly send update info to the drag cursor for hilighting
                 //just with enter/exit hover events alone so we need to send that info
                 //constantly while hovering
-                GridView.SharedCursor.CellPointerMoved(evt, this);
+                GridView.CellPointerMoved(this, evt.localPosition);
             }
         }
 

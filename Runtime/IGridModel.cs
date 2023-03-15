@@ -33,7 +33,6 @@ namespace PGIA
         GridCellModel FindCell(IGridItemModel item);
         RectInt? GetLocation(IGridItemModel item);
         void SortInventory();
-        RectInt ClipRegion(RectInt region);
         RectInt? FindOpenSpace(int width, int height);
         bool CanMoveItemToLocation(IGridItemModel item, RectInt region);
         IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos);

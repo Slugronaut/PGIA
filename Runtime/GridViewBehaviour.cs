@@ -24,6 +24,9 @@ namespace PGIA
         [SerializeField]
         [HideInInspector]
         GridModelBehaviour _Model; //note that we have used to concrete type here for the sake of serialization. there are workarounds to avoid this but I can't be fucked to bother right now
+        [PropertySpace(12)]
+        [PropertyOrder(-1)]
+        [Title("Instance Data")]
         [ShowInInspector]
         [Tooltip("The inventory that this grid will represent.")]
         public IGridModel Model
@@ -41,21 +44,27 @@ namespace PGIA
                         SetupGrid();
                         UpdateGridContents();
                     }
+                    else _Model = (GridModelBehaviour)value;
                 }
 #pragma warning restore CS0253 // Possible unintended reference comparison; right hand side needs cast
             }
         }
-        [Tooltip("The document that holds the UI data.")]
+        [PropertyOrder(0)]
+        [Tooltip("The UIDocument in the scene that holds the UI data.")]
         public UIDocument View;
-        public VisualTreeAsset CellUIPrefab;
-        [Tooltip("An asset that stores common properties that are often shared by many grids.")]
-        public GridViewAsset Shared;
+        [PropertyOrder(0)]
         [Tooltip("The name of the visual element of the supplied UI document that will contain this grid.")]
         public string GridContainerId = "GridContainer";
+
+        [Title("Shared Assets")]
         [Tooltip("Asset that describes the cursor used by this view model when dragging items.")]
-        public DragCursor SharedCursor;
-
-
+        public DragCursor CursorAsset;
+        [Tooltip("The UI document asset that describes an instance of a grid cell.")]
+        public VisualTreeAsset CellUIAsset;
+        [Tooltip("An asset that stores common properties that are often shared by many grids.")]
+        public GridViewAsset SharedGridAsset;
+       
+        
 
         /// <summary>
         /// How many pixels wide a cell is for this view.
@@ -172,7 +181,7 @@ namespace PGIA
         /// <param name="model"></param>
         void SetupGrid()
         {
-            Assert.IsNotNull(CellUIPrefab);
+            Assert.IsNotNull(CellUIAsset);
             if (_Model == null || !Started || Initialized) return;
 
             Initialized = true;
@@ -185,12 +194,12 @@ namespace PGIA
             {
                 int x = i % _Model.GridWidth;
                 int y = i / _Model.GridWidth;
-                var cellUI = CellUIPrefab.Instantiate();
+                var cellUI = CellUIAsset.Instantiate();
                 CellViews.Add(new GridCellView(this, _Model.GetCell(x, y), cellUI, x, y));
                 cellUI.userData = CellViews[i];
                 cellUI.name = $"Cell ({x},{y})";
-                cellUI.style.backgroundColor = Shared.DefaultColorBackground;
-                var stackLabel = cellUI.Q<Label>(Shared.StackQtyId);
+                cellUI.style.backgroundColor = SharedGridAsset.DefaultColorBackground;
+                var stackLabel = cellUI.Q<Label>(SharedGridAsset.StackQtyId);
                 stackLabel.text = CellViews[i].QtyStr;
                 PositionCellUI(GridRootUI, cellUI, x, y);
                 GridRootUI.Add(cellUI);
@@ -215,7 +224,7 @@ namespace PGIA
         void UpdateCell(GridCellView cellView)
         {
             var cellUI = cellView.CellUI;
-            var stackLabel = cellUI.Q<Label>(Shared.StackQtyId);
+            var stackLabel = cellUI.Q<Label>(SharedGridAsset.StackQtyId);
             stackLabel.text = cellView.QtyStr;
         }
 
@@ -452,7 +461,7 @@ namespace PGIA
             CandidateForStickyDrag = true;
 
             //setup the cursor
-            SharedCursor.SyncCursorToDragState(DragSource);
+            CursorAsset.SyncCursorToDragState(DragSource);
 
             //update the model and confirm success
             if (!Model.RemoveItem(DragSource.Item))
@@ -532,7 +541,7 @@ namespace PGIA
                 ResetDragState();
                 DragSource = swapDragSource;
                 CandidateForStickyDrag = true;
-                SharedCursor.SyncCursorToDragState(DragSource);
+                CursorAsset.SyncCursorToDragState(DragSource);
                 #endregion
 
                 return;
@@ -590,7 +599,7 @@ namespace PGIA
                 HilightHoveredCells(cellView, localPos, GridViewBehaviour.HilightedCells);
                 if (CandidateForStickyDrag)
                 {
-                    if ((DragSource.PointerWorld - cellView.CellUI.LocalToWorld(localPos)).sqrMagnitude > Shared.StickyDragMoveThreshold)
+                    if ((DragSource.PointerWorld - cellView.CellUI.LocalToWorld(localPos)).sqrMagnitude > SharedGridAsset.StickyDragMoveThreshold)
                         CandidateForStickyDrag = false;
                 }
             }
@@ -606,8 +615,8 @@ namespace PGIA
         void ResetDragState()
         {
             if (!IsDragging) return;
-            TintCells(GridViewBehaviour.HilightedCells, DragSource.CellView.GridView.Shared.DefaultColorBackground, DragSource.CellView.GridView.Shared.DefaultColorIcon);
-            SharedCursor.SyncCursorToDragState(null);
+            TintCells(GridViewBehaviour.HilightedCells, DragSource.CellView.GridView.SharedGridAsset.DefaultColorBackground, DragSource.CellView.GridView.SharedGridAsset.DefaultColorIcon);
+            CursorAsset.SyncCursorToDragState(null);
             DragSource = null;
         }
 
@@ -623,7 +632,7 @@ namespace PGIA
         void HilightHoveredCells(GridCellView cellView, Vector2 localPosition, List<GridCellView> cells)
         {
             //clear out previous cells if any
-            TintCells(cells, cellView.GridView.Shared.DefaultColorBackground, cellView.GridView.Shared.DefaultColorIcon);
+            TintCells(cells, cellView.GridView.SharedGridAsset.DefaultColorBackground, cellView.GridView.SharedGridAsset.DefaultColorIcon);
             cells.Clear();
 
             if (IsDragging)
@@ -635,13 +644,13 @@ namespace PGIA
                     cellView.GridView.Model.CheckForSwappableItem(DragSource.Item, region.x, region.y) != null ||
                     cellView.GridView.Model.CheckForStackableItem(DragSource.Item, region.x, region.y) != null)
                 {
-                    bgColor = cellView.GridView.Shared.ValidColorBackground;
-                    iconTint = cellView.GridView.Shared.ValidColorIcon;
+                    bgColor = cellView.GridView.SharedGridAsset.ValidColorBackground;
+                    iconTint = cellView.GridView.SharedGridAsset.ValidColorIcon;
                 }
                 else
                 {
-                    bgColor = cellView.GridView.Shared.InvalidColorBackground;
-                    iconTint = cellView.GridView.Shared.InvalidColorIcon;
+                    bgColor = cellView.GridView.SharedGridAsset.InvalidColorBackground;
+                    iconTint = cellView.GridView.SharedGridAsset.InvalidColorIcon;
                 }
 
                 cellView.GridView.GetCellViews(cellView.GridView.Model.GridWidth, cellView.GridView.Model.GridHeight, region, cells);
@@ -651,7 +660,7 @@ namespace PGIA
             else
             {
                 cells.Add(cellView);
-                TintCells(cells, cellView.GridView.Shared.HilightColorBackground, cellView.GridView.Shared.HilightColorIcon);
+                TintCells(cells, cellView.GridView.SharedGridAsset.HilightColorBackground, cellView.GridView.SharedGridAsset.HilightColorIcon);
             }
         }
         #endregion

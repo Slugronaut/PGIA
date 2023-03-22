@@ -4,7 +4,7 @@ using UnityEngine;
 namespace PGIA
 {
     /// <summary>
-    /// That one class that exists in every single model of C# code ever. You know the one. 
+    /// That one class that exists in every single module of C# code ever. You know the one. 
     /// It has all of those random functions that just don't seem to belong anywhere in particular.
     /// </summary>
     public static class Utilities

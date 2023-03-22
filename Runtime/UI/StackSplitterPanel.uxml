@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Scripts/Inventory/UI%20Assets/InventoryUI%20Style.uss?fileID=7433441132597879392&amp;guid=65cd1097e650db846b7e7cdbdaf2c85e&amp;type=3#InventoryUI Style" />
+    <ui:VisualElement name="StackSplitPanel" class="SmallPanel" style="justify-content: flex-start; align-self: auto; flex-direction: column; align-items: center;">
+        <ui:Label tabindex="-1" text="Split Stack" display-tooltip-when-elided="true" class="Subtitle" />
+        <ui:VisualElement name="VisualElement" style="flex-grow: 0; background-color: rgba(0, 0, 0, 0); flex-direction: row; align-self: center; align-items: flex-start; flex-shrink: 0; justify-content: space-between;">
+            <ui:TextField picking-mode="Ignore" value="filler text" style="flex-shrink: 1; flex-grow: 1; width: 50%; -unity-text-align: upper-right; color: rgb(121, 129, 125);" />
+            <ui:Label tabindex="-1" text="/ 100" display-tooltip-when-elided="true" style="width: 50%;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

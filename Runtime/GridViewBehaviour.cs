@@ -6,26 +6,15 @@ using TPUModelerEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
-using static UnityEditor.Progress;
 using Tooltip = UnityEngine.TooltipAttribute;
 
 namespace PGIA
 {
     /// <summary>
     /// The controller interfaces between the GridModel and the UIElements used to visualize it.
-    /// This would be the 'C' in MVC or the 'VM' in MMVM design patterns.
-    /// 
-    /// 
     /// 
     /// TODO:
     ///     -problem when overlapping odd-numbered mutli-cell items, tends to drift too far
-    ///     -stacking process:
-    ///         -1) target has enough room, source is destroyed
-    ///         -2) target does not have enough room, source returns to it's destintion in full
-    ///             -if destination not available, drop total
-    ///         -3) target has partial room, source returned to destination in part
-    ///             -if destination jot available, drop difference
-    ///             
     ///     -stack splitting process
     /// </summary>
     public class GridViewBehaviour : MonoBehaviour
@@ -45,9 +34,13 @@ namespace PGIA
 #pragma warning disable CS0253 // Possible unintended reference comparison; right hand side needs cast
                 if (_Model != value)
                 {
-                    _Model = (GridModelBehaviour)value; //again, casting to concrete type. can't be fucked
                     if (Application.isPlaying)
-                        PushModelToView();
+                    {
+                        TeardownGrid();
+                        _Model = (GridModelBehaviour)value; //again, casting to concrete type. can't be fucked
+                        SetupGrid();
+                        UpdateGridContents();
+                    }
                 }
 #pragma warning restore CS0253 // Possible unintended reference comparison; right hand side needs cast
             }
@@ -92,6 +85,7 @@ namespace PGIA
         #region Private Fields
         List<GridCellView> CellViews;
         bool Started;
+        bool Initialized;
         bool IsDragging => DragSource != null;
         bool CandidateForStickyDrag;
 
@@ -113,9 +107,9 @@ namespace PGIA
         private IEnumerator Start()
         {
             yield return null; //need to wait a frame for UIToolkit stuff
-            SetupGrid(_Model);
             Started = true;
-            SharedCursor.Initialize(View);
+            SetupGrid();
+            UpdateGridContents();
         }
 
         private void Awake()
@@ -167,36 +161,32 @@ namespace PGIA
         /// <param name="geometryChangedEvent"></param>
         void HandleGeometryChangedEvent(GeometryChangedEvent geometryChangedEvent)
         {
-            Debug.Log("Handling rebuild request");
             PushModelToView();
         }
 
         /// <summary>
-        /// Assigns the model to this controller and creates a grid within the View element.
-        /// If a model was already present the grid representing that one is destroyed first
-        /// via Teardown().
+        /// Creates a UI grid for the model currently assgined to this view.
+        /// Subsiquent calls to this method do nothing until <see cref="TeardownGrid"/>
+        /// has been called first.
         /// </summary>
         /// <param name="model"></param>
-        void SetupGrid(IGridModel model)
+        void SetupGrid()
         {
             Assert.IsNotNull(CellUIPrefab);
-            if (model == null) return;
-            if (_Model != null)
-                TeardownGrid();
-            _Model = (GridModelBehaviour)model;
+            if (_Model == null || !Started || Initialized) return;
 
-
+            Initialized = true;
             GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
-            int total = Model.GridWidth * Model.GridHeight;
+            int total = _Model.GridWidth * _Model.GridHeight;
             CellViews = new(total);
 
 
             for (int i = 0; i < total; i++)
             {
-                int x = i % Model.GridWidth;
-                int y = i / Model.GridWidth;
+                int x = i % _Model.GridWidth;
+                int y = i / _Model.GridWidth;
                 var cellUI = CellUIPrefab.Instantiate();
-                CellViews.Add(new GridCellView(this, model.GetCell(x, y), cellUI, x, y));
+                CellViews.Add(new GridCellView(this, _Model.GetCell(x, y), cellUI, x, y));
                 cellUI.userData = CellViews[i];
                 cellUI.name = $"Cell ({x},{y})";
                 cellUI.style.backgroundColor = Shared.DefaultColorBackground;
@@ -235,8 +225,9 @@ namespace PGIA
         /// <param name="model"></param>
         void TeardownGrid()
         {
-            if (_Model == null || !Started) return;
+            if (_Model == null || !Started || !Initialized) return;
 
+            Initialized = false;
             GridRootUI.UnregisterCallback<GeometryChangedEvent>(HandleGeometryChangedEvent);
             _Model.OnGridSizeChanged.RemoveListener(HandleModelGridSizeChanged);
             _Model.OnStoredItem.RemoveListener(HandleStoredItem);
@@ -244,8 +235,11 @@ namespace PGIA
             _Model.OnCellsUpdated.RemoveListener(HandleCellsUpdated);
 
             CellViews.Clear();
-            GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
-            GridRootUI.Clear();
+            if (View != null && View.rootVisualElement != null)
+            {
+                GridRootUI = View.rootVisualElement.Q<VisualElement>(GridContainerId);
+                GridRootUI.Clear();
+            }
         }
 
         /// <summary>
@@ -279,7 +273,16 @@ namespace PGIA
             //the new ui system seems pretty zippy so let's see how bad this is before worrying
             //about doing it a 'more efficient' way.
             TeardownGrid();
-            SetupGrid(_Model);
+            SetupGrid();
+            foreach (var item in _Model.Contents)
+                HandleStoredItem(_Model, item);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        void UpdateGridContents()
+        {
             foreach (var item in _Model.Contents)
                 HandleStoredItem(_Model, item);
         }

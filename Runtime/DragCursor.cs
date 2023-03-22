@@ -1,69 +1,112 @@
+using Sirenix.OdinInspector;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.Rendering;
 using UnityEngine.UIElements;
 
 namespace PGIA
 {
     /// <summary>
     /// To be shared between ModelViews, this represents the ircon of an item as it is being dragged around.
+    /// This cursor is a persistent object that will exist from app start to app quit including in the editor itself.
+    /// For this reason it is specially guarded so that once it has been initialized it will never repeat this process.
     /// </summary>
     [CreateAssetMenu(fileName = "Drag Cursor", menuName = "PGIA/Drag Cursor")]
     public class DragCursor : ScriptableObject
     {
         #region Fields and Properties
         [Space(12)]
-        [Tooltip("A UI document describing the cursor.")]
+        [Required]
+        [Tooltip("A UI asset describing the cursor.")]
         public VisualTreeAsset CursorAsset;
+
+        [Required]
+        [Tooltip("A UI asset representing the entire screen. This will dynamically be restyled to cover the entire screen at all times and generally should just be left blank.")]
+        public VisualTreeAsset ScreenAsset;
+
+        [Required]
+        [Tooltip("The UI settings used by this cursor.")]
+        public PanelSettings PanelSettings;
 
         VisualElement MouseScreen;
         VisualElement CursorUI;
+        UIDocument DocRoot;
+        GameObject DocGO;
         bool Initialized = false;
+        Vector2 CurrentPointerPos = new();
         #endregion
 
 
-        #region UNITY_EDITOR
-#if UNITY_EDITOR
-        /// <summary>
-        /// We need this bit of editor-only logic so that we can reset the Initialized state in the editor
-        /// since SO assets referenced in a scene will come into existance at asignment and persist until
-        /// domain reload.
-        /// </summary>
+        #region Unity Events
         private void OnEnable()
         {
-            Initialized = false;
+            //due to how scriptable objects work in the editor we need this guard
+            //to ensure we are always inializing when in playmode and ONLY when in playmode
+            if(Application.isPlaying)
+                Initialize();
+            #if UNITY_EDITOR
             EditorApplication.playModeStateChanged += HandlePlayModeChanged;
+            #endif
         }
 
         private void OnDisable()
         {
+            if(Application.isPlaying)
+                Deinitialize();
+            #if UNITY_EDITOR
             EditorApplication.playModeStateChanged -= HandlePlayModeChanged;
+            #endif
 
         }
 
         void HandlePlayModeChanged(PlayModeStateChange state)
         {
-            Deinitialize();
+            if (state == PlayModeStateChange.EnteredPlayMode)
+                Initialize();
+            else if(state == PlayModeStateChange.ExitingPlayMode)
+                Deinitialize();
         }
-#endif
         #endregion
 
 
-        #region Public Methods
-        /// <summary>
-        /// Currently, this is called by GridViewModel upon its own initialization.
-        /// If it has already been called once by any source, further calls will do nothing.
-        /// </summary>
-        public void Initialize(UIDocument uiRoot)
-        {
-            if (Initialized) return;
-            Initialized = true;
 
-            MouseScreen = uiRoot.rootVisualElement;
-            MouseScreen.RegisterCallback<PointerMoveEvent>(HandlePointerMove);
-            //CursorScreen = cursorScreenRoot;
+        #region Private Methods
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <exception cref="System.Exception"></exception>
+        void Initialize()
+        {
+            if (Equals(CursorAsset, null) || Equals(ScreenAsset, null) || Equals(PanelSettings, null))
+                throw new UnityException("You must supply a CursorAsset, ScreenAsset, and PanelSettings to the Drag Cursor.");
+
+            if (Initialized) return;
+
+            //create a dummy GameObject and add a UIDocument component to it.
+            //this will be the container for the 'screen' that our cursor can be moved on
+            DocGO = new GameObject("*** Cursor UI Doc ***");
+            DocGO.hideFlags = HideFlags.DontSave; //HideFlags.HideAndDontSave;
+            Object.DontDestroyOnLoad(DocGO);
+            DocRoot = DocGO.AddComponent<UIDocument>();
+            DocRoot.panelSettings = PanelSettings;
+            DocRoot.visualTreeAsset = ScreenAsset;
+
+            //add an element to our doc root. this will represent the 'screen' for our cursor to move on.
+            MouseScreen = new VisualElement();
+            MouseScreen.name = "Screen";
+            DocRoot.rootVisualElement.Add(MouseScreen);
+            MouseScreen.style.width = new StyleLength(new Length(100, LengthUnit.Percent));
+            MouseScreen.style.height = new StyleLength(new Length(100, LengthUnit.Percent));
+            MouseScreen.style.backgroundColor = Color.clear;
+            MouseScreen.pickingMode = PickingMode.Ignore;
+            InputSystem.onEvent += HandlePointerEvent;
+
+            //create our actual cursor ui element and make it a child of the screen element.
             CursorUI = CursorAsset.Instantiate();
             MouseScreen.Add(CursorUI);
-
             CursorUI.SetEnabled(true);
             CursorUI.pickingMode = PickingMode.Ignore; //this seems to be bugged. setting it via the stylesheets in the ui builder works though
             CursorUI.style.position = Position.Absolute;
@@ -71,22 +114,65 @@ namespace PGIA
             CursorUI.style.flexGrow = 0;
             CursorUI.style.visibility = Visibility.Hidden;
             CursorUI.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Contain));
+
+            Initialized = true;
         }
 
         /// <summary>
         /// 
         /// </summary>
-        public void Deinitialize()
+        void Deinitialize()
         {
             if (Initialized)
             {
-                CursorUI.UnregisterCallback<PointerMoveEvent>(HandlePointerMove);
-                CursorUI.parent.Remove(CursorUI);
-                MouseScreen = null;
                 Initialized = false;
+                InputSystem.onEvent -= HandlePointerEvent;
+                CursorUI.parent.Remove(CursorUI);
+                DestroyImmediate(DocGO);
+                MouseScreen = null;
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="eventPtr"></param>
+        /// <param name="device"></param>
+        void HandlePointerEvent(InputEventPtr eventPtr, InputDevice device)
+        {
+            if (!eventPtr.IsA<StateEvent>())
+                return;
+
+            var mouse = device as Mouse;
+            if(mouse != null)
+            {
+                var pos = mouse.position;
+                float posX = pos.x.value;
+                float posY = Screen.height - pos.y.value;
+                var LastPos = new Vector2(posX, posY);
+                SetCursorPosition(LastPos);
+                return;
+            }
+
+            var gamepad = device as Gamepad;
+            if(gamepad != null)
+            {
+                //TODO: track position manually by checking delta here
+                var deltaPos = gamepad.leftStick.ReadValueFromEvent(eventPtr);
+                CurrentPointerPos += deltaPos;
+
+                if (CurrentPointerPos.x < 0) CurrentPointerPos.x = 0;
+                if (CurrentPointerPos.y < 0) CurrentPointerPos.y = 0;
+                if (CurrentPointerPos.x > Screen.width) CurrentPointerPos.x = Screen.width;
+                if (CurrentPointerPos.y > Screen.height) CurrentPointerPos.y = Screen.height;
+                return;
+            }
+        }
+
+        #endregion
+
+
+        #region Public Methods
         /// <summary>
         /// Updates the cursor to match the state of the payload's icon and icon size.
         /// If the payload passed is null, the cursor is deactivated.
@@ -115,15 +201,6 @@ namespace PGIA
             CursorUI.style.top = new StyleLength(position.y - (CursorUI.style.height.value.value * 0.5f));
         }
         #endregion
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="evt"></param>
-        void HandlePointerMove(PointerMoveEvent evt)
-        {
-            SetCursorPosition(evt.position);
-        }
 
     }
 

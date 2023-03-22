@@ -14,3 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CursorAsset: {fileID: 9197481963319205126, guid: b3ff5ae5dc419b64cba0ae47873e59db,
     type: 3}
+  ScreenAsset: {fileID: 9197481963319205126, guid: a8d7d64e329a3e24eb34abeecf932853,
+    type: 3}

@@ -1,0 +1,6 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/Scripts/Inventory/UI%20Assets/PGI.uss?fileID=7433441132597879392&amp;guid=4ccae153d5d2b5748a41168293482f1e&amp;type=3#PGI" />
+    <ui:VisualElement name="Container" class="GridSlot" style="background-color: rgba(0, 0, 0, 0);">
+        <ui:Label name="StackQty" text="00&#10;" />
+    </ui:VisualElement>
+</ui:UXML>

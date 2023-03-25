@@ -149,8 +149,9 @@ namespace PGIA
                 var pos = mouse.position;
                 float posX = pos.x.value;
                 float posY = Screen.height - pos.y.value;
-                var LastPos = new Vector2(posX, posY);
-                SetCursorPosition(LastPos);
+                var pointerPos = new Vector2(posX, posY);
+                pointerPos = RuntimePanelUtils.ScreenToPanel(DocRoot.rootVisualElement.panel, pointerPos);
+                SetCursorPosition(pointerPos);
                 return;
             }
 
@@ -196,6 +197,16 @@ namespace PGIA
         /// This means that x,y = (0, 0) starts at the top left of the screen.
         /// </summary>
         public void SetCursorPosition(Vector2 position)
+        {
+            CursorUI.style.left = new StyleLength(position.x - (CursorUI.style.width.value.value * 0.5f));
+            CursorUI.style.top = new StyleLength(position.y - (CursorUI.style.height.value.value * 0.5f));
+        }
+
+        /// <summary>
+        /// Positions the drag cursor icon at the given position in UIToolkit screen space in pixels.
+        /// This means that x,y = (0, 0) starts at the top left of the screen.
+        /// </summary>
+        public void SetVirtualCursorPosition(Vector2 position)
         {
             CursorUI.style.left = new StyleLength(position.x - (CursorUI.style.width.value.value * 0.5f));
             CursorUI.style.top = new StyleLength(position.y - (CursorUI.style.height.value.value * 0.5f));

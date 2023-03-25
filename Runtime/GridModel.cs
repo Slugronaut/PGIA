@@ -232,9 +232,11 @@ namespace PGIA
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public bool StoreItem(IGridItemModel item, RectInt region)
+        public bool StoreItem(IGridItemModel item, Vector2Int topLeft)
         {
             Assert.IsNotNull(item);
+
+            var region = new RectInt(topLeft, item.Size);
 
             if (item.Container == this)
                 return false;
@@ -348,7 +350,7 @@ namespace PGIA
         /// <param name="draggedItem">The item currently being drag n dropped.</param>
         /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
         /// <returns></returns>
-        public bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion)
+        public bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, Vector2Int dropTopLeft)
         {
             if (swapItem != null)
             {
@@ -358,9 +360,9 @@ namespace PGIA
                 if (!RemoveItem(swapItem))
                     return false;
 
-                if (!StoreItem(draggedItem, dropRegion))
+                if (!StoreItem(draggedItem, dropTopLeft))
                 {
-                    if (!StoreItem(swapItem, swappedItemOriginalRegion.Value))
+                    if (!StoreItem(swapItem, swappedItemOriginalRegion.Value.position))
                     {
                         //boy oh boy if this fails we are fucked, just drop the item and let the game figure out what to do with it, I guess?
                         var model = swapItem.Container ?? this;
@@ -589,8 +591,9 @@ namespace PGIA
         /// </summary>
         /// <param name="item"></param>
         /// <param name="region"></param>
-        public bool CanMoveItemToLocation(IGridItemModel item, RectInt region)
+        public bool CanMoveItemToLocation(IGridItemModel item, Vector2Int topLeft)
         {
+            var region = new RectInt(topLeft, item.Size);
             if (!ValidateRegion(region)) return false;
             return IsLocationEmpty(region, item);
         }

@@ -18,11 +18,11 @@ namespace PGIA
         IEnumerable<IGridItemModel> Contents { get; }
 
         void OnEnable();
-        bool StoreItem(IGridItemModel item, RectInt region);
+        bool StoreItem(IGridItemModel item, Vector2Int topLeft);
         bool RemoveItem(IGridItemModel item);
         void ForceRemoveItem(IGridItemModel item);
         void DropItem(IGridItemModel item);
-        bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion);
+        bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, Vector2Int dropTopLeft);
         int StackItems(IGridItemModel incoming, IGridItemModel receiver, int qty);
         IGridItemModel SplitStackItem(IGridItemModel item, int qty, Func<IGridItemModel> instantiateAction);
         bool IsLocationEmpty(RectInt region);
@@ -34,7 +34,7 @@ namespace PGIA
         RectInt? GetLocation(IGridItemModel item);
         void SortInventory();
         RectInt? FindOpenSpace(int width, int height);
-        bool CanMoveItemToLocation(IGridItemModel item, RectInt region);
+        bool CanMoveItemToLocation(IGridItemModel item, Vector2Int topLeft);
         IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos);
         IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos);
 

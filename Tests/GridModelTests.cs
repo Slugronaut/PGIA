@@ -84,7 +84,7 @@ namespace PGIA.Tests
             var model = CreateModel(5, 8);
             var item = CreateItem(ItemAsset1x1_001);
 
-            var inRegion = MakeRegion(item, 0, 0);
+            var inRegion = new Vector2Int(0, 0);
             var result = model.StoreItem(item, inRegion);
 
             Assert.IsTrue(result);
@@ -99,7 +99,7 @@ namespace PGIA.Tests
             //TODO: make this loop over every valid location possible and try them all
             const int xPos = 0;
             const int yPos = 0;
-            var inRegion = MakeRegion(item, xPos, yPos);
+            var inRegion = new Vector2Int(xPos, yPos);
             model.StoreItem(item, inRegion);
 
             var cell = model.FindCell(item);
@@ -114,7 +114,7 @@ namespace PGIA.Tests
             var outRegion = loc.Value;
             Assert.AreEqual(2, outRegion.width);
             Assert.AreEqual(2, outRegion.height);
-            Assert.AreEqual(inRegion, outRegion);
+            Assert.AreEqual(new RectInt(inRegion, item.Size), outRegion);
         }
         #endregion
 
@@ -130,7 +130,7 @@ namespace PGIA.Tests
             var dropItem = CreateItem(StackableItemAsset1x1_001);
             Assert.Greater(storedItem.MaxStackCount, 1);
             Assert.Greater(dropItem.MaxStackCount, 1);
-            model.StoreItem(storedItem, MakeRegion(storedItem, xPos, yPos));
+            model.StoreItem(storedItem, new Vector2Int(xPos, yPos));
 
             return (model, storedItem, dropItem);
         }
@@ -157,7 +157,7 @@ namespace PGIA.Tests
             var dropItem = CreateItem(StackableItemAsset1x1_001);
             Assert.IsFalse(storedItem.Shared.IsStackable);
             Assert.IsTrue(dropItem.Shared.IsStackable);
-            model.StoreItem(storedItem, MakeRegion(storedItem, xPos, yPos));
+            model.StoreItem(storedItem, new Vector2Int(xPos, yPos));
 
             var foundItem = model.CheckForStackableItem(dropItem, xPos, yPos);
             Assert.IsNull(foundItem);
@@ -173,7 +173,7 @@ namespace PGIA.Tests
             var dropItem = CreateItem(ItemAsset1x1_001);
             Assert.IsTrue(storedItem.Shared.IsStackable);
             Assert.IsFalse(dropItem.Shared.IsStackable);
-            model.StoreItem(storedItem, MakeRegion(storedItem, xPos, yPos));
+            model.StoreItem(storedItem, new Vector2Int(xPos, yPos));
 
             var foundItem = model.CheckForStackableItem(dropItem, xPos, yPos);
             Assert.IsNull(foundItem);
@@ -189,7 +189,7 @@ namespace PGIA.Tests
             var dropItem = CreateItem(StackableItemAsset1x1_002);
             Assert.IsTrue(storedItem.Shared.IsStackable);
             Assert.IsTrue(dropItem.Shared.IsStackable);
-            model.StoreItem(storedItem, MakeRegion(storedItem, xPos, yPos));
+            model.StoreItem(storedItem, new Vector2Int(xPos, yPos));
 
             var foundItem = model.CheckForStackableItem(dropItem, xPos, yPos);
             Assert.IsNull(foundItem);

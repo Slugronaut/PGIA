@@ -63,6 +63,7 @@ namespace PGIA
         /// runtime this value will be overwritten when the desierializer kicks in (which basically makes it a garbage generator :p).
         /// </summary>
         [SerializeField]
+        [HideInInspector]
         GridModel BackingModel = new();
         #endregion
 
@@ -87,7 +88,7 @@ namespace PGIA
         /// </summary>
         /// <param name="item"></param>
         /// <returns></returns>
-        public bool StoreItem(IGridItemModel item, RectInt region) => BackingModel.StoreItem(item, region);
+        public bool StoreItem(IGridItemModel item, Vector2Int topLeft) => BackingModel.StoreItem(item, topLeft);
 
         /// <summary>
         /// Removes the item from inventory model. If the operation is rejected by a listener
@@ -203,7 +204,7 @@ namespace PGIA
         /// </summary>
         /// <param name="item"></param>
         /// <param name="region"></param>
-        public bool CanMoveItemToLocation(IGridItemModel item, RectInt region) => BackingModel.CanMoveItemToLocation(item, region);
+        public bool CanMoveItemToLocation(IGridItemModel item, Vector2Int topLeft) => BackingModel.CanMoveItemToLocation(item, topLeft);
 
         /// <summary>
         /// Performs the task of dropping a dragged into into an inventory model with swap as needed. If successfull, the swapped item will be returned.
@@ -213,7 +214,7 @@ namespace PGIA
         /// <param name="draggedItem">The item currently being drag n dropped.</param>
         /// <param name="dropRegion">The location on the dropModel to drop the draggedItem.</param>
         /// <returns></returns>
-        public bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, RectInt dropRegion) => BackingModel.SwapItems(swapItem, draggedItem, dropRegion);
+        public bool SwapItems(IGridItemModel swapItem, IGridItemModel draggedItem, Vector2Int dropTopLeft) => BackingModel.SwapItems(swapItem, draggedItem, dropTopLeft);
 
         /// <summary>
         /// Checks a region of space to see if there is exactly 1 IGridItemModel within

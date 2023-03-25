@@ -525,7 +525,7 @@ namespace PGIA
             {
                 var rootCell = this.FindRootCellView(swapItem);
                 var swapDragSource = new DragPayload(rootCell, localPos, clickedCellView.CellUI.LocalToWorld(localPos)); //cache drag info no before we actually move the item
-                if (!targetModel.SwapItems(swapItem, DragSource.Item, region))
+                if (!targetModel.SwapItems(swapItem, DragSource.Item, region.position))
                 {
                     Cancel();
                     return;
@@ -545,7 +545,7 @@ namespace PGIA
 
 
             #region Drop
-            if (!clickedCellView.GridView.Model.StoreItem(DragSource.Item, region))
+            if (!clickedCellView.GridView.Model.StoreItem(DragSource.Item, region.position))
                 Cancel();
             else ResetDragState();
             #endregion
@@ -635,7 +635,7 @@ namespace PGIA
                 var region = CalculateBestFitCells(localPosition, cellView, DragSource.Item);
                 Color bgColor;
                 Color iconTint;
-                if (cellView.GridView.Model.CanMoveItemToLocation(DragSource.Item, region) ||
+                if (cellView.GridView.Model.CanMoveItemToLocation(DragSource.Item, region.position) ||
                     cellView.GridView.Model.CheckForSwappableItem(DragSource.Item, region.x, region.y) != null ||
                     cellView.GridView.Model.CheckForStackableItem(DragSource.Item, region.x, region.y) != null)
                 {

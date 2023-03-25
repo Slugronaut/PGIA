@@ -20,7 +20,7 @@ namespace PGIA.Test
             {
                 var loc = Inventory.FindOpenSpace(item.Size.x, item.Size.y);
                 if (loc != null)
-                    Inventory.StoreItem(item, loc.Value);
+                    Inventory.StoreItem(item, loc.Value.position);
             }
         }
 
@@ -29,7 +29,7 @@ namespace PGIA.Test
         {
             if (!Application.isPlaying) return;
 
-            if(Inventory.StoreItem(Item, new RectInt(x, y, Item.Shared.Size.x, Item.Shared.Size.y)))
+            if(Inventory.StoreItem(Item, new Vector2Int(x, y)))
             {
                 Debug.Log("According to PGIA, the STORE operation was a success.");
             }

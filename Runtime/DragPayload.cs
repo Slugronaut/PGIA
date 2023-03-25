@@ -61,11 +61,11 @@ namespace PGIA
         public void RestoreSourceState()
         {
             //put the item back where it came from, if this fails, not much we can do about it at this point
-            if (Region == null || !Model.StoreItem(Item, Region.Value))
+            if (Region == null || !Model.StoreItem(Item, Region.Value.position))
             {
                 //since the region it came from is invalid, can we resolve a new spot that is big enough?
                 var rect = GridView.Model.FindOpenSpace(Item.Size.x, Item.Size.y);
-                if (!rect.HasValue || !Model.StoreItem(Item, rect.Value))
+                if (!rect.HasValue || !Model.StoreItem(Item, rect.Value.position))
                 {
                     Debug.LogWarning("Due to the amount of item swapping, no valid location could be found for this cancelled operation. As a result the item " +
                         "will be expelled from the inventory entirely and the 'OnDroppedItem' event will be triggered. " +

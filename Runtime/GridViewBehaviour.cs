@@ -174,24 +174,6 @@ namespace PGIA
         }
 
         /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="queryPath"></param>
-        VisualElement ParseQueryPath(string queryPath)
-        {
-            //return View.rootVisualElement.Q<VisualElement>(GridContainerId);
-            var elements = queryPath.Split('.');
-            if(elements == null || elements.Length < 2)
-                return View.rootVisualElement.Q<VisualElement>(GridContainerId);
-
-            VisualElement newRoot = View.rootVisualElement;
-            foreach(var element in elements)
-                newRoot = newRoot.Q<VisualElement>(element);
-
-            return newRoot;
-        }
-
-        /// <summary>
         /// Creates a UI grid for the model currently assgined to this view.
         /// Subsiquent calls to this method do nothing until <see cref="TeardownGrid"/>
         /// has been called first.
@@ -203,7 +185,7 @@ namespace PGIA
             if (_Model == null || !Started || Initialized) return;
 
             Initialized = true;
-            GridRootUI = ParseQueryPath(GridContainerId);
+            GridRootUI = Utilities.ParseQueryPath(View.rootVisualElement, GridContainerId);
             int total = _Model.GridWidth * _Model.GridHeight;
             CellViews = new(total);
 

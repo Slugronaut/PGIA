@@ -18,8 +18,6 @@ namespace PGIA
         readonly public TextField Text_SplitAmount;
         public Label Label_Total;
 
-
-
         public StackSplitPanel()
         {
             //add text ui controls for split amount - make it grab control of the mouse

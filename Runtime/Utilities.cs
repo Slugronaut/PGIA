@@ -1,5 +1,6 @@
+using System.Linq;
 using UnityEngine;
-
+using UnityEngine.UIElements;
 
 namespace PGIA
 {
@@ -23,6 +24,51 @@ namespace PGIA
             int yMax = Mathf.Min(region.yMax, maxHeight);
 
             return new RectInt(xMin, yMin, xMax - xMin, yMax - yMin);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="queryPath"></param>
+        static public VisualElement ParseQueryPath(VisualElement root, string queryPath)
+        {
+            if (string.IsNullOrEmpty(queryPath)) return null;
+            var elements = queryPath.Split('.').Where(x => !string.IsNullOrEmpty(x));
+            if (elements.Count() < 2)
+                return root.Q<VisualElement>(queryPath);
+
+            VisualElement newRoot = root;
+            foreach (var element in elements)
+            {
+                var t = newRoot.Q<VisualElement>(element);
+                if (t == null) break;
+                newRoot = t;
+            }
+
+            return newRoot;
+        }
+
+        /// <summary>
+        /// Works up the hierarchy until it cannot find anymore VisualElements and then returns the last one found.
+        /// </summary>
+        /// <param name="start"></param>
+        /// <returns></returns>
+        static public VisualElement FindRootElement(VisualElement start)
+        {
+            VisualElement root = start;
+            while (true)
+            {
+                if (root == null)
+                    break;
+                if (root.parent == null) 
+                    break;
+                var parentType = root.parent.GetType();
+                if (parentType != typeof(VisualElement) && !parentType.IsSubclassOf(typeof(VisualElement)))
+                    break;
+                root = root.parent;
+            }
+
+            return root;
         }
     }
 }

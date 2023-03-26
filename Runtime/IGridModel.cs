@@ -32,6 +32,7 @@ namespace PGIA
         GridCellModel GetCell(int index);
         GridCellModel FindCell(IGridItemModel item);
         RectInt? GetLocation(IGridItemModel item);
+        Vector2Int AdjustedSize(IGridItemModel item);
         void SortInventory();
         RectInt? FindOpenSpace(int width, int height);
         bool CanMoveItemToLocation(IGridItemModel item, Vector2Int topLeft);

@@ -6,6 +6,8 @@ MonoImporter:
   defaultReferences:
   - ItemAsset1x1_001: {fileID: 11400000, guid: e2d51357c40a2e544b693d9dc09da415, type: 2}
   - ItemAsset2x2_001: {fileID: 11400000, guid: f988a2c161f2a6447a7fab2806b2ac87, type: 2}
+  - ItemAsset1x2_001: {fileID: 11400000, guid: b733070a008608c42b08b78d638b6a59, type: 2}
+  - ItemAsset2x1_001: {fileID: 11400000, guid: 747bdd13f7e35374385a24110d3a194b, type: 2}
   - StackableItemAsset1x1_001: {fileID: 11400000, guid: 22bced147638d7344b5aa477dbe68952,
       type: 2}
   - StackableItemAsset1x1_002: {fileID: 11400000, guid: bfcb9fd9ed9c3604483cfcefdd136dbe,

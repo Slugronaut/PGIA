@@ -92,7 +92,7 @@ namespace PGIA
         [SerializeField][HideInInspector] UnityEvent<IGridModel, IEnumerable<GridCellModel>> _OnCellsUpdated = new();
         [PropertySpace(12)][ShowInInspector][FoldoutGroup("Events")] public UnityEvent<IGridModel, IEnumerable<GridCellModel>> OnCellsUpdated { get => _OnCellsUpdated; set => _OnCellsUpdated = value; }
 
-        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem = new UnityEvent<IGridModel, IGridItemModel, OperationCancelAction>();
+        [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> _OnWillStoreItem = new();
         [PropertySpace(12)][ShowInInspector][FoldoutGroup("Store Events")] public UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get => _OnWillStoreItem; set => _OnWillStoreItem = value; }
 
         [SerializeField][HideInInspector] UnityEvent<IGridModel, IGridItemModel> _OnStoredItem = new();
@@ -236,7 +236,7 @@ namespace PGIA
         {
             Assert.IsNotNull(item);
 
-            var region = new RectInt(topLeft, item.Size);
+            var region = new RectInt(topLeft, AdjustedSize(item));
 
             if (item.Container == this)
                 return false;
@@ -544,11 +544,21 @@ namespace PGIA
                 {
                     int x = i % GridWidth;
                     int y = i / GridWidth;
-                    return new RectInt(x, y, item.Size.x, item.Size.y);
+                    return new RectInt(new Vector2Int(x, y), AdjustedSize(item));
                 }
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Returns the item size after adjusting for width or height ingoring factors.
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public Vector2Int AdjustedSize(IGridItemModel item)
+        {
+            return new Vector2Int(_ShrinkItemWidths ? 1 : item.Size.x, _ShrinkItemHeights ? 1 : item.Size.y);
         }
 
         /// <summary>
@@ -593,7 +603,7 @@ namespace PGIA
         /// <param name="region"></param>
         public bool CanMoveItemToLocation(IGridItemModel item, Vector2Int topLeft)
         {
-            var region = new RectInt(topLeft, item.Size);
+            var region = new RectInt(topLeft, AdjustedSize(item));
             if (!ValidateRegion(region)) return false;
             return IsLocationEmpty(region, item);
         }
@@ -609,7 +619,7 @@ namespace PGIA
         /// <returns></returns>
         public IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos)
         {
-            var destRegion = new RectInt(xPos, yPos, item.Size.x, item.Size.y);
+            var destRegion = new RectInt(new Vector2Int(xPos, yPos), AdjustedSize(item));
 
             IGridItemModel swapItem = null;
             foreach (var cell in CellsInRegion(destRegion))

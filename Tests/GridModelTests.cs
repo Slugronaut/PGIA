@@ -10,6 +10,8 @@ namespace PGIA.Tests
     {
         [SerializeField] InventoryItemAsset ItemAsset1x1_001;
         [SerializeField] InventoryItemAsset ItemAsset2x2_001;
+        [SerializeField] InventoryItemAsset ItemAsset1x2_001;
+        [SerializeField] InventoryItemAsset ItemAsset2x1_001;
         [SerializeField] InventoryItemAsset StackableItemAsset1x1_001;
         [SerializeField] InventoryItemAsset StackableItemAsset1x1_002;
 
@@ -117,6 +119,7 @@ namespace PGIA.Tests
             Assert.AreEqual(new RectInt(inRegion, item.Size), outRegion);
         }
         #endregion
+
 
         #region TEST STACKING
         /// <summary>
@@ -267,5 +270,99 @@ namespace PGIA.Tests
         }
         #endregion
 
+
+        #region TEST SLOTS
+        [Test]
+        public void SlotIgnoresItemWidth()
+        {
+            var model = CreateModel(1, 1);
+            model.ShrinkItemWidths = true;
+            var item = CreateItem(ItemAsset2x1_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item, inRegion);
+
+            Assert.IsTrue(result);
+        }
+
+        public void SlotIgnoresItemWidthWhileSwapping()
+        {
+            var model = CreateModel(1, 1);
+            model.ShrinkItemWidths = true;
+            var item1 = CreateItem(ItemAsset2x1_001);
+            var item2 = CreateItem(ItemAsset2x1_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item1, inRegion);
+            Assert.IsTrue(result);
+
+            var swapItem = model.CheckForSwappableItem(item2, 0, 0);
+            Assert.IsNotNull(swapItem);
+            Assert.AreSame(item1, swapItem);
+        }
+
+        [Test]
+        public void SlotDoesntIgnoreItemWidth()
+        {
+            var model = CreateModel(1, 1);
+            var item = CreateItem(ItemAsset2x1_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item, inRegion);
+
+            Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void SlotIgnoresItemHeight()
+        {
+            var model = CreateModel(1, 1);
+            model.ShrinkItemHeights = true;
+            var item = CreateItem(ItemAsset1x2_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item, inRegion);
+
+            Assert.IsTrue(result);
+        }
+
+        [Test]
+        public void SlotDoesntIgnoreItemHeight()
+        {
+            var model = CreateModel(1, 1);
+            var item = CreateItem(ItemAsset1x2_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item, inRegion);
+
+            Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void SlotIgnoresItemWidthAndHeight()
+        {
+            var model = CreateModel(1, 1);
+            model.ShrinkItemWidths = true;
+            model.ShrinkItemHeights = true;
+            var item = CreateItem(ItemAsset2x2_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item, inRegion);
+
+            Assert.IsTrue(result);
+        }
+
+        [Test]
+        public void SlotDoesntIgnoreItemWidthAndHeight()
+        {
+            var model = CreateModel(1, 1);
+            var item = CreateItem(ItemAsset2x2_001);
+
+            var inRegion = new Vector2Int(0, 0);
+            var result = model.StoreItem(item, inRegion);
+
+            Assert.IsFalse(result);
+        }
+        #endregion
     }
 }

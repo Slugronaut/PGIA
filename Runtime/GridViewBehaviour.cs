@@ -329,7 +329,8 @@ namespace PGIA
 
             //now we want to set the icon of that cell and stretch it to fill the entire item region on the grid
             firstCellView.CellUI.style.backgroundImage = new StyleBackground(item.Shared.Icon);
-            PositionCellUI(GridRootUI, firstCellView.CellUI, region.x, region.y, item.Size.x, item.Size.y);
+            var adjustedItemSize = model.AdjustedSize(item);
+            PositionCellUI(GridRootUI, firstCellView.CellUI, region.x, region.y, adjustedItemSize.x, adjustedItemSize.y);
             firstCellView.CellUI.BringToFront();
         }
 
@@ -720,12 +721,15 @@ namespace PGIA
             offsetX = Mathf.Max(0, offsetX);
             if (offsetX + w >= gridWidth)
                 offsetX = gridWidth - w;
+            offsetX = Mathf.Max(0, offsetX); //re-apply again in case we went negative
 
             offsetY = Mathf.Max(0, offsetY);
             if (offsetY + h > gridHeight)
                 offsetY = gridHeight - h;
+            offsetY = Mathf.Max(0, offsetY); //re-apply again in case we went negative
 
-            return new RectInt(offsetX, offsetY, w, h);
+            var finalRect = new RectInt(offsetX, offsetY, w, h);
+            return finalRect;
         }
 
         /// <summary>

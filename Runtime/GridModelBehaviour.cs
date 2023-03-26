@@ -185,6 +185,13 @@ namespace PGIA
         public RectInt? GetLocation(IGridItemModel item) => BackingModel.GetLocation(item);
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public Vector2Int AdjustedSize(IGridItemModel item) => BackingModel.AdjustedSize(item);
+
+        /// <summary>
         /// Sorts inventory into best-fit scenario via a simple but exponetial knapsack solver.
         /// This method could quickly get out of hand with larger data sets. Use with caution.
         /// </summary>

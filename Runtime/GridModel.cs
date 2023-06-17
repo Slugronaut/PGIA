@@ -220,6 +220,20 @@ namespace PGIA
                 }
             }
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        bool CheckForStoreCancellations(IGridItemModel item)
+        {
+            PendingActionCancelled = false;
+            OperationCancelAction opCan = new(() => PendingActionCancelled = true);
+            OnWillStoreItem.Invoke(this, item, opCan);
+            item.OnWillStoreItem.Invoke(this, item, opCan);
+            return !PendingActionCancelled;
+        }
         #endregion
 
 
@@ -247,12 +261,7 @@ namespace PGIA
                     return false;
             }
 
-            PendingActionCancelled = false;
-            OperationCancelAction opCan = new(() => PendingActionCancelled = true);
-            OnWillStoreItem.Invoke(this, item, opCan);
-            item.OnWillStoreItem.Invoke(this, item, opCan);
-
-            if (PendingActionCancelled || !ValidateRegion(region) || !IsLocationEmpty(region))
+            if(!CheckForStoreCancellations(item) || !ValidateRegion(region) || !IsLocationEmpty(region))
             {
                 OnStoreRejected.Invoke(this, item);
                 item.OnStoreRejected.Invoke(this, item);
@@ -603,9 +612,13 @@ namespace PGIA
         /// <param name="region"></param>
         public bool CanMoveItemToLocation(IGridItemModel item, Vector2Int topLeft)
         {
+            if (!CheckForStoreCancellations(item)) return false;
+
             var region = new RectInt(topLeft, AdjustedSize(item));
-            if (!ValidateRegion(region)) return false;
-            return IsLocationEmpty(region, item);
+            if (!ValidateRegion(region) || !IsLocationEmpty(region))
+                return false;
+
+            return true;
         }
 
         /// <summary>
@@ -619,6 +632,8 @@ namespace PGIA
         /// <returns></returns>
         public IGridItemModel CheckForSwappableItem(IGridItemModel item, int xPos, int yPos)
         {
+            if (!CheckForStoreCancellations(item))
+                return null;
             var destRegion = new RectInt(new Vector2Int(xPos, yPos), AdjustedSize(item));
 
             IGridItemModel swapItem = null;
@@ -642,6 +657,8 @@ namespace PGIA
         /// <returns></returns>
         public IGridItemModel CheckForStackableItem(IGridItemModel item, int xPos, int yPos)
         {
+            if (!CheckForStoreCancellations(item))
+                return null;
             if (item.Shared.MaxStackSize < 2) return null;
 
             //first, we have to ensure that there is exactly only one item here

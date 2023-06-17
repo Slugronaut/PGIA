@@ -16,3 +16,4 @@ MonoBehaviour:
     type: 3}
   ScreenAsset: {fileID: 9197481963319205126, guid: a8d7d64e329a3e24eb34abeecf932853,
     type: 3}
+  PanelSettings: {fileID: 11400000, guid: 76ae9bb4e1006124082be1586a436848, type: 2}

@@ -62,6 +62,7 @@ namespace PGIA
 
         }
 
+        #if UNITY_EDITOR
         void HandlePlayModeChanged(PlayModeStateChange state)
         {
             if (state == PlayModeStateChange.EnteredPlayMode)
@@ -69,6 +70,7 @@ namespace PGIA
             else if(state == PlayModeStateChange.ExitingPlayMode)
                 Deinitialize();
         }
+        #endif
         #endregion
 
 
@@ -170,10 +172,10 @@ namespace PGIA
             }
         }
 
-        #endregion
+#endregion
 
 
-        #region Public Methods
+#region Public Methods
         /// <summary>
         /// Updates the cursor to match the state of the payload's icon and icon size.
         /// If the payload passed is null, the cursor is deactivated.
@@ -211,7 +213,7 @@ namespace PGIA
             CursorUI.style.left = new StyleLength(position.x - (CursorUI.style.width.value.value * 0.5f));
             CursorUI.style.top = new StyleLength(position.y - (CursorUI.style.height.value.value * 0.5f));
         }
-        #endregion
+#endregion
 
     }
 

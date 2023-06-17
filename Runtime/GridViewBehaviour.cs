@@ -2,7 +2,6 @@ using AdvLifeSim;
 using Sirenix.OdinInspector;
 using System.Collections;
 using System.Collections.Generic;
-using TPUModelerEditor;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -28,7 +27,7 @@ namespace PGIA
         [PropertyOrder(-1)]
         [Title("Instance Data")]
         [ShowInInspector]
-        [Tooltip("The inventory that this grid will represent.")]
+        [PropertyTooltip("The inventory that this grid will represent.")]
         public IGridModel Model
         {
             get => _Model;
@@ -50,18 +49,18 @@ namespace PGIA
             }
         }
         [PropertyOrder(0)]
-        [Tooltip("The UIDocument in the scene that holds the UI data.")]
+        [PropertyTooltip("The UIDocument in the scene that holds the UI data.")]
         public UIDocument View;
         [PropertyOrder(0)]
-        [Tooltip("The name of the visual element of the supplied UI document that will contain this grid.")]
+        [PropertyTooltip("The name of the visual element of the supplied UI document that will contain this grid.")]
         public string GridContainerId = "GridContainer";
 
         [Title("Shared Assets")]
-        [Tooltip("Asset that describes the cursor used by this view model when dragging items.")]
+        [PropertyTooltip("Asset that describes the cursor used by this view model when dragging items.")]
         public DragCursor CursorAsset;
-        [Tooltip("The UI document asset that describes an instance of a grid cell.")]
+        [PropertyTooltip("The UI document asset that describes an instance of a grid cell.")]
         public VisualTreeAsset CellUIAsset;
-        [Tooltip("An asset that stores common properties that are often shared by many grids.")]
+        [UnityEngine.Tooltip("An asset that stores common properties that are often shared by many grids.")]
         public GridViewAsset SharedGridAsset;
        
         

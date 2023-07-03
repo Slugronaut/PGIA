@@ -31,15 +31,17 @@ The following is a quick-start guide for working with PGIA. It will not go into 
 <br />
 
 ## Environment setup  
+The first thing we need to do is ensure that the project has all of the required dependecies. These include the new Input System, UIElements / UIToolkit, Odin, HashedString, and of course PGIA itself. This system was developed using Unity 2022 and is currently maintained for Unity 2022.3 so that version of Unity or later is recommended.
 <br />
 
 ### IElements / UIToolkit  
-PGIA is designed to work with Unity's new UIToolkit and does not support the old UGUI system anymore. You can ensure it is active by going to the Package Manager, selecting the 'Built-in' packages from the dropdown and searching for UIElements. You should see something like the following screenshot if it is enabled.  
+PGIA is designed to work with Unity's new UIToolkit and does not support the old UGUI system anymore. You can ensure it is active by going to the Package Manager, selecting the *Built-in* packages from the dropdown and searching for UIElements. You should see something like the following screenshot if it is enabled.  
 
 ![](doc/images/example01.PNG)  
 
 ### Input System  
-PGIA also requires the new Input System from Unity in order to properly track mouse positions. Unfortunately, some parts of UIElements still rely on the old system as well but luckily Unity supports both system simultaneously. Once again you can use the package manager to ensure you have installed the new Input System.  
+PGIA also requires the new Input System from Unity in order to properly track mouse positions. Unfortunately, some parts of UIElements still rely on the old system as well but luckily Unity supports both system simultaneously. Once more, you can use the package manager to ensure you have installed the new Input System.  
+
 ![](doc/images/example02.PNG)  
 
 After installing Unity will likely ask you if you want to enable the new system and then require a restart. You should opt to do this. You can also toggle this option in the *Project Settings->Player->OtherSettings* and set *Active Input Handling* to *Both*.
@@ -48,22 +50,22 @@ After installing Unity will likely ask you if you want to enable the new system 
 Next up you will require Odin's Inspector tools. Anyone that is truly serious about developing with Unity should already have Odin Inspector and Serializer at this point but if for some reason you do not it will be required to continue. You can visit their website to learn more and even try out a free demo. [https://odininspector.com/download](https://odininspector.com/download)  
 
 ### Hashed String
-And finally, you'll need a small library of my own. It simply allows you to decalre a HashedString datatype that can be viewed in the inspector and serialized by Unity. Get it here. [HashedString](https://github.com/Slugronaut/Toolbox-HashedString)  
+And finally, you'll need a small library of my own. It simply allows you to declare a HashedString datatype that can be viewed in the inspector and serialized by Unity. Get it here: [HashedString](https://github.com/Slugronaut/Toolbox-HashedString)  
 
 <br />
 <br />
 
 ## Setting Up the Root UI
-The first thing you'll want to do is define some assets that will be used for your system. Start up the UIBuilder and create a new asset. We'll call it UIPanel for now. Add a *VisualElement* to it. Provide a simple background color for it. Next, add another *VisualElement* as a child of the first and again give it a background color. This way we'll be eable to see what is going on.  
+The first thing you'll want to do is define some assets that will be used for your system. Start up the UIBuilder and create a new asset. We'll call it UIPanel for now. Add a *VisualElement* to it. Provide a background color for it so that we can more easily see it. Next, add another *VisualElement* as a child of the first and again give it a background color that is different from the first. Again the background is just for visual clarity in the example and can be anything you want for a real project.
 
 The child element should also be given a name. In this example let's call it 'GridContainer'. This will be used to contain your grid of cells that will be generated.  
 
-Here is an example of how things might look for our example.  
+Here is an example of how things might look.
 
 ![](doc/images/example03.PNG)  
 
 
-After that, add create an empty GameObject in your scene and add a UIDocument component to it. Then supply a link to your UIPanel.  
+After that, add create an empty GameObject in your scene and add a *UIDocument* component to it. Then supply a link to your UIPanel.  
 
 ![](doc/images/example04.PNG)  
 
@@ -73,14 +75,14 @@ After that, add create an empty GameObject in your scene and add a UIDocument co
 So we'll need a couple more UI elements before we can get properly started. These will define both our cursor and the actual cells of the grid. Don't worry, I promise this will be easy. Let's start with the cursor.  
 
 ### The Cursor
-Open the UIBuilder again and add a single *VisualElement*. Name it 'Cursor'. This is important as this will be the tag that PGI uses to locate this particular object. Next, go to the Attributes and be sure to set *Picking Mode* to *Ignore. This is done in code by PGIA but on some versions of Unity the API doesn't work so it must be forced manually in the editor .Save the file as somthing like Cursor.uxml and that's it! All done!  
+The firs thing we want is a UI element to display our cursor when we are dragging items around. Open the UIBuilder again and add a single *VisualElement*. Name it 'Cursor'. This is important as this will be the tag that PGI uses to locate this particular object. Next, go to the Attributes and be sure to set *Picking Mode* to *Ignore*. This is done in code by PGIA but on some versions of Unity the API doesn't work so it must be forced manually in the editor. Save the file as something like 'Cursor.uxml' and that's it! All done!  
 
 ![](doc/images/example05.PNG)  
 
-See? I told you it would be easy. This particular element you created will be used to display the icon of the item being dragged around in the inventory. As such it will dynamically be resized as needed. You *can* add additional styling if you really want to but it's not necessary at all. When you aren't dragging anything it will remain invisible.  
+See? I told you it would be easy. Keep in mind that this UI element will dynamically be resized as needed so you don't need to bother with any of that. You *can* add additional styling if you really want to but it's not necessary at all. When you aren't dragging anything it will remain invisible.  
 
 ### The Cursor Screen
-There may be some cases where we want to have multiple different UIs on the screen but there could be a gap between them. For example a shop might have two windows on either side of the screen but nothing inbetween them. UIToolkit has no way of displaying or tracking movement across these so we'll need a kind of dummy object to handle this for us.
+There may be some cases where we want to have multiple different UIs on the screen but there could be a gap between them. For example a shop might have two windows on either side of the screen but nothing in between them. UIToolkit has no way of displaying or tracking movement across these so we'll need a kind of dummy object to handle this for us.
 
 In the UIBuilder create a new tree. You can leave this one empty as PGIA will handle everything else internally. All you need to do is go to *Canvas Size* on the root and check the box for *Match Game View*.  
 
@@ -88,9 +90,9 @@ In the UIBuilder create a new tree. You can leave this one empty as PGIA will ha
 
 
 ### The Grid Cell  
-The final element is the definition of the cell used by the grid. This is probably the most complicated. In short you need to create yet another element in UIBuilder, add the PGI.uss stylesheet from the PGIA Package UI folder. Then create a *VisualElement* and name it 'Container' and apply the *.GridSlot* stle class to it. Likely you'll want Next add a text element as a child of Container and name it 'StackQty'.  
+The final element is the definition of the cell used by the grid. This is probably the most complicated. In short you need to create yet another element in UIBuilder, add the 'PGI.uss' stylesheet from the PGIA Package UI folder. Then create a *VisualElement* and name it 'Container' and apply the *.GridSlot* style class to it. Then add a text element as a child of 'Container' and name it 'StackQty'. The Container portion will display the icon for the grid cell and StackQty will of course be used to display a count when identical items are stacked in a single slot. 
 
-After that you'll either want to manually override the border of the Container element to seomthing like 2px with a color you like or alternatively you could define the variables used by the PGI.uss style sheet. They are as follows:  
+You'll certainly want to be able to see the cell itself so after that you'll either want to manually override the border of the Container element to something like 2px with a color you like or alternatively you could define the variables used by the PGI.uss style sheet. They are as follows:  
 
 ```
 border-left-color: var(--pgia-theme-cellborder-prime);  
@@ -102,7 +104,7 @@ border-bottom-color: var(--pgia-theme-cellborder-prime);
 ![](doc/images/example07.PNG)  
 
 
-As with all of the other elements you can choose to add any other number of visual flourishes you desire including the placement of the StackQty element. This is all rather long-winded though so if you prefer a shortcut you can simply copy the GridCell.uxml file found in PGIA's UI folder and start there, You'll still need to either define the border variables or override them in the UIBuilder yourself.
+As with all of the other elements you can choose to add any other number of visual flourishes you desire including the placement of the StackQty element. This is all rather long-winded though so if you prefer a shortcut you can simply copy the 'GridCell.uxml' file found in PGIA's UI folder and start there, You'll still need to either define the border variables or override them in the UIBuilder yourself.
 
 <br />
 <br />
@@ -115,11 +117,11 @@ First let's create a Drag Cursor Asset. This will contain information that is re
 
 In your project window create a folder to hold all of your UI assets and then open the context menu and navigate to *Create->PGIA->Drag Cursor*. This will create a DragCursor scriptableobject asset in that folder.  
 
-Click on the new file and you'll see three entries. The first one is called 'Cursor Asset'. Locate the Cursor.uxml file you created earlier and drag it into that spot. Next you'll see 'Screen Asset'. Do the same with the 'CursorScreen.uxml' file you created earlier. This will allow any view using this DragCursor asset to know how to actually display it.  
+Click on the new file and you'll see three entries. The first one is called *Cursor Asset*. Locate the 'Cursor.uxml' file you created earlier and drag it into that spot. Next you'll see *Screen Asset*. Do the same with the 'CursorScreen.uxml' file you created earlier. This will allow any view using this DragCursor asset to know how to actually display it.  
 
-The final entry is called 'Panel Settings'. If you look at the UIDocument component in your scene that you created earlier you'll see a refernce to a 'PanelSettings' asset. Locate that file and then make a duplicate of it and name it 'CursorSettings'. Select that asset and then change *ScaleMode* to *Scale With Screen Size*. You'll also likely want o set a reference resolution and slide the *Match* bar all the way to *Height*. Finally, like this asset to the *Panel Settings* of your DragCusror. Setting the scaling is important here because it ensures that the mouse clicks and drag icon are registered in the correct location of the screen regardless of your screen resolution or ratio.  
+The final entry is called *Panel Settings*. If you look at the UIDocument component in your scene that you created earlier you'll see a reference to a *PanelSettings* asset. Locate that file and then make a duplicate of it and name it 'CursorSettings'. Select that asset and then change *ScaleMode* to *Scale With Screen Size*. You'll also likely want to set a reference resolution and slide the *Match* bar all the way to *Height*. Finally, link this asset to the *Panel Settings* of your DragCusror. Setting the scaling is important here because it ensures that the mouse clicks and drag icon are registered in the correct location of the screen regardless of your screen resolution or ratio.  
 
-When you are don it should look like the below images.  
+When you are done it should look like the below images.  
 
 ![](doc/images/example08.PNG)  
 
@@ -132,7 +134,7 @@ Next we need an asset that defines some of the visual aspects of our grid views.
 <br />
 
 ## MVC
-PGIA uses a very simple form of MVC to manage data and display it. A Model simply stores the state of an inventory. A view can be given a link to a model and it will display that model's state as a UI grid. The model can even be dynamically changed to allow the reuse of a single view.  
+PGIA uses a very simple form of MVC to manage data and display it. A Model simply stores the state of an inventory. A view can be given a link to a model and it will display that model's state as a UI grid. The model can even be dynamically swapped to allow the reuse of a single view.  
 
 For the most part the view handles updating of the model when the user interacts with its UI. And if the model is updated manually through code it will inform the view and cause it to reflect any changes. Which means you can mostly just write code to interact with the model and it will just work.  
 
@@ -150,13 +152,13 @@ Create a new GameObject in the scene and name it 'Inventory'. Attach a *GridMode
 ### The View
 Locate the GameObject that has your *UIDocument* component and add a *GridViewBehaviour*. It's not necessary that it be attached to the same object as the UIDocument but I find it usually helps with organizing things since they are very closely related.  
 
-Now it's time to glue everything together! First link the *Model* to the *GridModelComponent* you just created in the previous step. Next link the *View* to the *UIDocument* component int his same GameObject. Be sure the *Grid Container Id* matches the name you gave to the container element in your UI. It should be *GridContainer* if you followed along exactly.  
+Now it's time to glue everything together! First link the *Model* to the *GridModelComponent* you just created in the previous step. Next link the *View* to the *UIDocument* component in this same GameObject. Be sure the *Grid Container Id* matches the name you gave to the container element in your UI. It should be *GridContainer* if you followed along exactly.  
 
 > This value can use dot separators to find child elements. By default it will search out the first valid entry it can find but if you have a complicated structure you can specify a hirarchy.  
 
->For example you could type 'Panel.GridContainer' if you also named the parent element 'Panel'. This allows you to have multiple containers with the same name that can be linked seperately based on their hierarchy in the UI tree.  
+>For example you could type 'Panel.GridContainer' if you also named the parent element 'Panel'. This allows you to have multiple containers with the same name that can be linked seperately based on their hierarchy in the UI tree. You can then have multiple Views all pointing to their associated container without getting confused.
 
-Next up, link the *Cursor Asset* to the Drag Cursor asset we created earlier. Then link the *Cell UI Asset* entry to the GridCell.uxml we created. Finally, link the *Shared Grid Asset* to the Grid View Asset and we are finally done! If you followed along closely it should like similar to this:  
+Next up, link the *Cursor Asset* to the Drag Cursor asset we created earlier. Then link the *Cell UI Asset* entry to the 'GridCell.uxml' we created. Finally, link the *Shared Grid Asset* to the Grid View Asset and we are finally done! If you followed along closely it should look similar to this:  
 
 ![](doc/images/example11.PNG) 
 

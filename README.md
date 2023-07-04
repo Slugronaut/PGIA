@@ -169,10 +169,61 @@ And with that, you are all done! You should now have a working inventory and vie
 
 But it looks so empty. Let's make some items and learn how to fill it.
 
+<br />
+<br />
 
-## Inventory Items
+## Items and Inventory Manipulation
 
-### Not Yet Written...
+Next we'll learn how to define an item for use in the grid system and finally learn how to add them to and remove them from an inventory using code.  
+
+### Inventory Item
+
+Unlike PGI, PGIA does not require the use of GameObjects or MonoBehaviours to handle instances of items. And instead of storing the properties of the item per instance it now uses a ScriptableObject asset to share this information between all instances of the same item. This is great news as it means it can much more efficiently handle inventories than before!  
+
+However, once again for the sake of convienience we'll use a MonoBehaviour that is a wrapper for the raw data. Even still, the shared properties alone are a vast improvement over the old system and can potentially save loads of RAM in the case of large inventories being present.  
+
+Navigate to your UI folder once more and open the context menu. Select *Create->PGIA->Inventory Item* to create an item asset. This asset represents the fixed properties that never change and are shared between instances of the same item.  
+
+Currently most of the features in here are not used directly by PGIA and are simply there for my own personal use. Perhaps in the futrue *Id* and *Category* might get used for some kind of search or filtering feature. For now the only things that matter are *Icon* and *Size*. Select an appropriate icon for your item and then give it a size of at least 1x1 and no more than the size of your inventory (which in this example is 10x10).  
+
+![](doc/images/example12.PNG) 
+
+Now return to your scene and add a new GameObject and call it 'Item'. Add a *GridItemModelBehaviour* script to it. There is a field named *Shared* that you should link to the item asset you just created. Congrats! You now have an item to store in your inventory!
+
+> Again, I just want to stress that you don't strictly need a GameObject and MonoBehaviour here. They are simply there for convienience and impliment the IGridItemModel interface and act as a wrapper for GridItemModel.  
+
+### Add an Item to an Inventory
+Adding and removing items is a very simple process. All you need to do is get a reference to your IGridModel object and call the *StoreItem()* and *RemoveItem()* methods. There are several helper methods that can make things easier such as *FindOpenSpace()* to... well... find a place to store an item.  
+
+PGIA comes with a small utility MonoBehaviour for testing that can demonstrate this functionality. Select your Model from the scene and add a *StoreItemTester* behaviour to it. Link the *Item* to the *GridItemBehaviour* script from your 'Item' GameObject in the scene. Then link the the *Inventory* to the *GridModelBehaviour* script of your 'Inventory' GameObject.  
+
+Start up your scene and the select a slot location for *X* and *Y* in the inspector window. Items are stored using their top-left corner as the coordinate so anything greater than 0x0 and less than the width and height of the inventory minus the width and height of the item should work here. Finally, press the 'Test Store' button in the inspector and it should store your item in the inventory.  
+
+![](doc/images/example12.PNG) 
+
+You can also test removing items by select a coordinate that overlaps with the item and pressing 'Test Remove'. I'll leave it as an exercise for you to have a look at the code for the script and learn how it works.  
+
+### Drag Icon Size  
+
+One thing to note is that your drag icon might not match the size of the icon in the inventory. This is probably due to the panel settings for your UIDocument. If things look weird try adjusting the panel settings to match those of your cursor's panel settings. I usually go with *Scale with Screen Size* for both as it makes things much easier but experienced UIToolkit users should be able to figure out what best meets their own needs.
+
+
+### Multiple Inventories  
+
+For the most part PGIA just works when it comes to multiple inventories. To create another inventory just create another UIDocument, model, and view and link everything up like before. Items can be seamlessly moved between the two inventories with no additional work from you. 
+
+### Filtering  
+
+If for some reason you want to stop an item from being moved to another inventory then you can always use the *IGridModel.OnWillStoreItem* event. Simply add a listener to handle this event and when invoked, just perform whatever checks you need. If you decide an item should not be allowed to store in a model invoke the *Cancel()* method of the *OperationCancelAction* that was passed to the event handler.  
+
+
+## Conclusion  
+
+And with that you now have a functioning inventory! There are several other features I haven't gone into such as events for items, models, and views but they should hopefully be pretty self explanitory.  
+
+Enjoy!  
+
+
 
 
 

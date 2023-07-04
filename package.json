@@ -16,5 +16,8 @@
     "email": "jcsluggy@gmail.com",
     "url": "http:/postegames.com"
   },
-  "dependencies": {}
+  "dependencies": {
+	"com.unity.inputsystem": "",
+	"com.postegames.hashedstring": ""
+  }
 }

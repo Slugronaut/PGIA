@@ -186,7 +186,7 @@ Navigate to your UI folder once more and open the context menu. Select *Create->
 
 Currently most of the features in here are not used directly by PGIA and are simply there for my own personal use. Perhaps in the futrue *Id* and *Category* might get used for some kind of search or filtering feature. For now the only things that matter are *Icon* and *Size*. Select an appropriate icon for your item and then give it a size of at least 1x1 and no more than the size of your inventory (which in this example is 10x10).  
 
-![](doc/images/example12.PNG) 
+![](doc/images/example13.PNG) 
 
 Now return to your scene and add a new GameObject and call it 'Item'. Add a *GridItemModelBehaviour* script to it. There is a field named *Shared* that you should link to the item asset you just created. Congrats! You now have an item to store in your inventory!
 
@@ -199,7 +199,7 @@ PGIA comes with a small utility MonoBehaviour for testing that can demonstrate t
 
 Start up your scene and the select a slot location for *X* and *Y* in the inspector window. Items are stored using their top-left corner as the coordinate so anything greater than 0x0 and less than the width and height of the inventory minus the width and height of the item should work here. Finally, press the 'Test Store' button in the inspector and it should store your item in the inventory.  
 
-![](doc/images/example12.PNG) 
+![](doc/images/example14.PNG) 
 
 You can also test removing items by select a coordinate that overlaps with the item and pressing 'Test Remove'. I'll leave it as an exercise for you to have a look at the code for the script and learn how it works.  
 

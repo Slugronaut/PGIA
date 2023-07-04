@@ -14,10 +14,10 @@
   "author": {
     "name": "Sluggy",
     "email": "jcsluggy@gmail.com",
-    "url": "http:/postegames.com"
+    "url": "http://postexistence.com"
   },
   "dependencies": {
-	"com.unity.inputsystem": "",
-	"com.postegames.hashedstring": ""
+	"com.postegames.hashedstring": "",
+	"com.unity.inputsystem": ""
   }
 }

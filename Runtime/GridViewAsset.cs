@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace AdvLifeSim
+namespace PGIA
 {
     /// <summary>
     /// Data that is commonly shared by many grid views.

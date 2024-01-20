@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace PGIA
@@ -22,6 +23,10 @@ namespace PGIA
             get => (Cell.Item == null) || (!Cell.Item.Shared.IsStackable) ? string.Empty : Cell.Item.StackCount.ToString();
         }
 
+        public StyleLength IconWidth => Icon?.style.width ?? 0;
+
+        public StyleLength IconHeight => Icon?.style.height ?? 0;
+
         /// <summary>
         /// In the case that this cell has been stetched to overlap others, this will return the list of those overlapped cells.
         /// </summary>
@@ -34,6 +39,7 @@ namespace PGIA
 
         bool Hovered = false;
         bool Disposed;
+        VisualElement Icon;
 
         /// <summary>
         /// 
@@ -57,6 +63,42 @@ namespace PGIA
             CellUI.RegisterCallback<PointerLeaveEvent>(HandlePointerLeave);
             CellUI.RegisterCallback<PointerMoveEvent>(HandlePointerMove);
             CellUI.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Contain));
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="icon"></param>
+        /// <returns></returns>
+        public VisualElement SetIcon(VisualElement icon)
+        {
+            VisualElement old = null;
+            if (Icon != null)
+            {
+                CellUI.Remove(Icon);
+                Icon.visible = false;
+                old = Icon;
+            }
+
+            Icon = icon;
+            if (icon != null)
+            {
+                CellUI.Add(Icon);
+                Icon.pickingMode = PickingMode.Ignore;
+                Icon.focusable = false;
+                Icon.style.position = Position.Absolute;
+                Icon.style.left = 0;
+                Icon.style.top = 0;
+                Icon.style.backgroundImage = new StyleBackground(Item.Shared.Icon);
+                Icon.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+                //Icon.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Length));// // new StyleLength(100, LengthUnit.Percent);
+                //Icon.style.backbackgroundPosition = new StyleLength(50, LengthUnit.Percent);
+                //Icon.style.backgroundRepeat = new StyleBackgroundRepeat(new BackgroundRepeat(0, 0));
+
+                Icon.BringToFront();
+                Icon.visible = true;
+            }
+            return old;
         }
 
         /// <summary>

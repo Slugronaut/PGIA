@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -37,8 +38,8 @@ namespace PGIA
             PointerLocal = pointerLocal;
             PointerWorld = pointerWorld;
             RootCellView = GridViewBehaviour.FindRootCell(CellView);
-            IconWidth = RootCellView.CellUI.style.width;
-            IconHeight = RootCellView.CellUI.style.height;
+            IconWidth = RootCellView.IconWidth;// CellUI.style.width;
+            IconHeight = RootCellView.IconHeight;// CellUI.style.height;
 
             Region = Model.GetLocation(Item);
             if(Region == null)
@@ -53,7 +54,7 @@ namespace PGIA
             }
         }
 
-
+        static List<GridCellView> Temp = new();
         /// <summary>
         /// Attempts to place the currently dragged item back into its source model.
         /// </summary>
@@ -72,8 +73,19 @@ namespace PGIA
                         "\n\nThis is not a bug but rather a heads up about this safety feature.");
                     var model = Item.Container ?? GridView.Model;
                     model.DropItem(Item);
+                    return;
                 }
+
+                GridView.GetCellViews(GridView.Model.GridWidth, GridView.Model.GridHeight, rect.Value, Temp);
             }
+            else
+            {
+                GridView.GetCellViews(GridView.Model.GridWidth, GridView.Model.GridHeight, Region.Value, Temp);
+            }
+
+            //tint the final resting location with the item
+            GridViewBehaviour.TintCells(Temp, this.CellView.GridView.SharedGridAsset.DefaultColorBackground, this.CellView.GridView.SharedGridAsset.DefaultColorIcon);
+
         }
 
 

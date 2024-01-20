@@ -1,6 +1,8 @@
 using Sirenix.OdinInspector;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -12,6 +14,7 @@ namespace PGIA
     /// 
     /// TODO:
     ///     -problem when overlapping odd-numbered mutli-cell items, tends to drift too far
+    ///     -dropping items with multiple vertical cells causes drift upward
     ///     -stack splitting process
     /// </summary>
     public class GridViewBehaviour : MonoBehaviour
@@ -58,6 +61,8 @@ namespace PGIA
         public DragCursor CursorAsset;
         [PropertyTooltip("The UI document asset that describes an instance of a grid cell.")]
         public VisualTreeAsset CellUIAsset;
+        [PropertyTooltip("The UI document asset that describes an instance of a grid cell icon.")]
+        public VisualTreeAsset CellIconAsset;
         [UnityEngine.Tooltip("An asset that stores common properties that are often shared by many grids.")]
         public GridViewAsset SharedGridAsset;
        
@@ -321,14 +326,17 @@ namespace PGIA
                 cellView.Item = item;
                 cellView.RootCellView = firstCellView;
             }
-            firstCellView.OverlappedCellViews = cellViews;
+            firstCellView.OverlappedCellViews = cellViews.Count > 1 ? cellViews : null;
             firstCellView.RootCellView = null;
 
+            TintCells(cellViews, item.Shared.Background, SharedGridAsset.DefaultColorIcon, false);
+
             //now we want to set the icon of that cell and stretch it to fill the entire item region on the grid
-            firstCellView.CellUI.style.backgroundImage = new StyleBackground(item.Shared.Icon);
-            firstCellView.CellUI.style.backgroundColor = item.Shared.Background;
+            //TODO: hack to see if this works - needs to be cached so that we don't thrash our heap
+            var coverCell = CellIconAsset.Instantiate();
             var adjustedItemSize = model.AdjustedSize(item);
-            PositionCellUI(GridRootUI, firstCellView.CellUI, region.x, region.y, adjustedItemSize.x, adjustedItemSize.y);
+            PositionCellUI(GridRootUI, coverCell, region.x, region.y, adjustedItemSize.x, adjustedItemSize.y);
+            firstCellView.SetIcon(coverCell);
             firstCellView.CellUI.BringToFront();
         }
 
@@ -354,10 +362,10 @@ namespace PGIA
             }
             firstCellView.OverlappedCellViews = null;
             firstCellView.RootCellView = null;
+            TintCells(cellViews, SharedGridAsset.DefaultColorBackground, SharedGridAsset.DefaultColorIcon, false);
 
-            firstCellView.CellUI.style.backgroundImage = null;
-            firstCellView.CellUI.style.backgroundColor = SharedGridAsset.DefaultColorBackground;
-            PositionCellUI(GridRootUI, firstCellView.CellUI, firstCellView.X, firstCellView.Y, 1, 1);
+            //TODO: instead of destroying, we should cache this
+            firstCellView.SetIcon(null).RemoveFromHierarchy();
         }
 
         /// <summary>
@@ -458,6 +466,9 @@ namespace PGIA
             //setup the cursor
             CursorAsset.SyncCursorToDragState(DragSource);
 
+            //reset the color of all cells being dragged
+            TintCells(DragSource.RootCellView.OverlappedCellViews, SharedGridAsset.DefaultColorBackground, SharedGridAsset.DefaultColorIcon, false);
+
             //update the model and confirm success
             if (!Model.RemoveItem(DragSource.Item))
             {
@@ -525,6 +536,7 @@ namespace PGIA
             {
                 var rootCell = this.FindRootCellView(swapItem);
                 var swapDragSource = new DragPayload(rootCell, localPos, clickedCellView.CellUI.LocalToWorld(localPos)); //cache drag info no before we actually move the item
+                var cachedCells = rootCell.OverlappedCellViews.ToList();
                 if (!targetModel.SwapItems(swapItem, DragSource.Item, region.position))
                 {
                     Cancel();
@@ -533,6 +545,8 @@ namespace PGIA
 
                 //update internal state to reflect the new drag item
                 #region Swap version of 'BeginDrag()'
+                //clear out space where swapped item was first, then fill in where we are going
+                TintCells(cachedCells, SharedGridAsset.DefaultColorBackground, SharedGridAsset.DefaultColorIcon);
                 TintCells(GridViewBehaviour.HilightedCells, DragSource.CellView.GridView.SharedGridAsset.DefaultColorBackground, DragSource.CellView.GridView.SharedGridAsset.DefaultColorIcon);
                 ResetDragState();
                 DragSource = swapDragSource;
@@ -667,7 +681,7 @@ namespace PGIA
         /// Helper for applying a tint and background color to a list of cell UI elements.
         /// </summary>
         /// <param name="emptyBackgroundColor"></param>
-        static void TintCells(List<GridCellView> cells, Color emptyBackgroundColor, Color iconTint, bool useItemBackgroundColors = true)
+        public static void TintCells(List<GridCellView> cells, Color emptyBackgroundColor, Color iconTint, bool useItemBackgroundColors = true)
         {
             if (cells != null)
             {
@@ -679,12 +693,10 @@ namespace PGIA
                     //if this cell has an item we want to tint it... BUT only if it's the root cell. i.e. not one of the overlapped cells.
                     //otherwise we'd fill in all of the cells with the color and it would look shit if there were transparencies. even worse
                     //is that the colors wouldn't reset when swapping items
-                    if (useItemBackgroundColors && cell.Item != null && cell.OverlappedCellViews != null)// && cell.RootCellView != null)
+                    if (useItemBackgroundColors && cell.Item != null)// && cell.OverlappedCellViews != null)
                     {
                         cell.CellUI.style.backgroundColor = cell.Item.Shared.Background;
                     }
-                    //else cell.CellUI.style.backgroundColor = emptyBackgroundColor;
-                    //cell.CellUI.style.backgroundColor = emptyBackgroundColor;
 
 
                     if (cell.CellUI.style.backgroundImage != null)
@@ -704,46 +716,49 @@ namespace PGIA
         /// <returns></returns>
         static RectInt CalculateBestFitCells(Vector2 localPos, GridCellView cellView, IGridItemModel draggedItem)
         {
-            if (draggedItem == null)
+            if (draggedItem == null || draggedItem is null)
                 return new RectInt(cellView.X, cellView.Y, 1, 1);
 
             int offsetX = cellView.X;
             int offsetY = cellView.Y;
-            int w = draggedItem.Size.x;
-            int h = draggedItem.Size.y;
+            int cellsX = draggedItem.Size.x;
+            int cellsY = draggedItem.Size.y;
 
             int gridWidth = cellView.GridView.Model.GridWidth;
             int gridHeight = cellView.GridView.Model.GridHeight;
             Vector2 normalized = new(localPos.x / cellView.GridView.CellWidth, localPos.y / cellView.GridView.CellHeight);
             float halfWay = 0.5f;
 
-            if (w > 1)
+            if (cellsX > 1)
             {
-                if ((w & 0x1) == 1) offsetX -= (int)(w / 2); //odd width
-                else if (normalized.x < halfWay) offsetX -= (int)(w / 2); //even width
-                else offsetX -= (int)(w / 2) - 1; //even width
+                if ((cellsX & 0x1) == 1) offsetX -= (int)(cellsX / 2); //odd width
+                else if (normalized.x < halfWay) offsetX -= (int)(cellsX / 2); //even width
+                else offsetX -= (int)(cellsX / 2) - 1; //even width
             }
-            if (h > 1)
+            if (cellsY > 1)
             {
-                if ((h & 0x1) == 1) offsetY -= (int)(h / 2); //odd height
-                else if (normalized.y < halfWay) offsetY -= (int)(h / 2); //even height
-                else offsetY -= (int)(h / 2) - 1; //even height
+                if ((cellsY & 0x1) == 1) offsetY -= (int)(cellsY / 2); //odd height
+                else if (normalized.y < halfWay) offsetY -= (int)(cellsY / 2); //even height
+                else offsetY -= (int)(cellsY / 2) - 1; //even height
             }
 
             //limit the final location to the bounds of the grid
             offsetX = Mathf.Max(0, offsetX);
-            if (offsetX + w >= gridWidth)
-                offsetX = gridWidth - w;
+            if (offsetX + cellsX >= gridWidth)
+                offsetX = gridWidth - cellsX;
             offsetX = Mathf.Max(0, offsetX); //re-apply again in case we went negative
 
             offsetY = Mathf.Max(0, offsetY);
-            if (offsetY + h > gridHeight)
-                offsetY = gridHeight - h;
+            if (offsetY + cellsY >= gridHeight)
+                offsetY = gridHeight - cellsY;
             offsetY = Mathf.Max(0, offsetY); //re-apply again in case we went negative
 
-            var finalRect = new RectInt(offsetX, offsetY, w, h);
+            var finalRect = new RectInt(offsetX, offsetY, cellsX, cellsY);
+
+
             return finalRect;
         }
+        static List<GridCellView> TempCells3 = new List<GridCellView>();
 
         /// <summary>
         /// Given a list of cells, this will be sure to include any root cells of multi-celled items who's children are

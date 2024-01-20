@@ -23,6 +23,8 @@ namespace PGIA
         public Sprite Icon;
         [Tooltip("The size of the item in grid cells. Should never be smaller than 1x1.")]
         public Vector2Int Size = new(1,1);
+        [Tooltip("The background color for the item's icon when resting in a gridview.")]
+        public Color Background;
 
         public bool IsStackable => MaxStackSize > 1;
 

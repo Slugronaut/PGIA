@@ -30,7 +30,7 @@ namespace PGIA
         public Color InvalidColorIcon = new Color(1, 0.5f, 0.5f, 1);
 
         [Space(12)]
-        [Tooltip("The color to set cells by default.")]
+        [Tooltip("The color to set empty cells by default.")]
         public Color DefaultColorBackground = Color.clear;
         public Color DefaultColorIcon = Color.white;
     }

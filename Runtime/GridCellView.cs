@@ -28,7 +28,7 @@ namespace PGIA
         public List<GridCellView> OverlappedCellViews;
 
         /// <summary>
-        /// In the case that this cell has been overlapped by another that was stretched over it, this will return that overlappin
+        /// In the case that this cell has been overlapped by another that was stretched over it, this will return that overlapping cell.
         /// </summary>
         public GridCellView RootCellView;
 

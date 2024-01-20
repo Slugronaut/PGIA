@@ -326,6 +326,7 @@ namespace PGIA
 
             //now we want to set the icon of that cell and stretch it to fill the entire item region on the grid
             firstCellView.CellUI.style.backgroundImage = new StyleBackground(item.Shared.Icon);
+            firstCellView.CellUI.style.backgroundColor = item.Shared.Background;
             var adjustedItemSize = model.AdjustedSize(item);
             PositionCellUI(GridRootUI, firstCellView.CellUI, region.x, region.y, adjustedItemSize.x, adjustedItemSize.y);
             firstCellView.CellUI.BringToFront();
@@ -355,6 +356,7 @@ namespace PGIA
             firstCellView.RootCellView = null;
 
             firstCellView.CellUI.style.backgroundImage = null;
+            firstCellView.CellUI.style.backgroundColor = SharedGridAsset.DefaultColorBackground;
             PositionCellUI(GridRootUI, firstCellView.CellUI, firstCellView.X, firstCellView.Y, 1, 1);
         }
 
@@ -531,6 +533,7 @@ namespace PGIA
 
                 //update internal state to reflect the new drag item
                 #region Swap version of 'BeginDrag()'
+                TintCells(GridViewBehaviour.HilightedCells, DragSource.CellView.GridView.SharedGridAsset.DefaultColorBackground, DragSource.CellView.GridView.SharedGridAsset.DefaultColorIcon);
                 ResetDragState();
                 DragSource = swapDragSource;
                 CandidateForStickyDrag = true;
@@ -615,8 +618,8 @@ namespace PGIA
 
         /// <summary>
         /// Given a target cell and the local pointer position on it, this calculates the best region to hilight given
-        /// the state of any drag operations. In no drag is ocurring only the cell provided is hilighted.
-        /// This method will reset the background colors of the cells list past in before spitting out the new cell
+        /// the state of any drag operations. If no drag is ocurring only the cell provided is hilighted.
+        /// This method will reset the background colors of the cells list passed in before spitting out the new cell
         /// 'best fit' cells for hilighting. So be sure to only pass in a list that was previously processed by this method
         /// or is fresh.
         /// </summary>
@@ -661,16 +664,29 @@ namespace PGIA
 
         #region Static Helper Methods
         /// <summary>
-        /// Helper for applying a tiny and background color to a list of cell UI elements.
+        /// Helper for applying a tint and background color to a list of cell UI elements.
         /// </summary>
-        /// <param name="backgroundColor"></param>
-        static void TintCells(List<GridCellView> cells, Color backgroundColor, Color iconTint)
+        /// <param name="emptyBackgroundColor"></param>
+        static void TintCells(List<GridCellView> cells, Color emptyBackgroundColor, Color iconTint, bool useItemBackgroundColors = true)
         {
             if (cells != null)
             {
                 foreach (var cell in cells)
                 {
-                    cell.CellUI.style.backgroundColor = backgroundColor;
+                    //set default tint just to be sure
+                    cell.CellUI.style.backgroundColor = emptyBackgroundColor;
+
+                    //if this cell has an item we want to tint it... BUT only if it's the root cell. i.e. not one of the overlapped cells.
+                    //otherwise we'd fill in all of the cells with the color and it would look shit if there were transparencies. even worse
+                    //is that the colors wouldn't reset when swapping items
+                    if (useItemBackgroundColors && cell.Item != null && cell.OverlappedCellViews != null)// && cell.RootCellView != null)
+                    {
+                        cell.CellUI.style.backgroundColor = cell.Item.Shared.Background;
+                    }
+                    //else cell.CellUI.style.backgroundColor = emptyBackgroundColor;
+                    //cell.CellUI.style.backgroundColor = emptyBackgroundColor;
+
+
                     if (cell.CellUI.style.backgroundImage != null)
                     {
                         cell.CellUI.style.unityBackgroundImageTintColor = iconTint;

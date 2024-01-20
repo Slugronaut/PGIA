@@ -152,6 +152,13 @@ namespace PGIA
                 float posX = pos.x.value;
                 float posY = Screen.height - pos.y.value;
                 var pointerPos = new Vector2(posX, posY);
+#if UNITY_EDITOR
+                if (DocRoot == null)
+                {
+                    Debug.Log("<color=green>DocRoot not found for DragCursor (DragCursor.cs Line 158). Deinitializing the cursor now.</color>");
+                    Deinitialize();
+                }
+#endif
                 pointerPos = RuntimePanelUtils.ScreenToPanel(DocRoot.rootVisualElement.panel, pointerPos);
                 SetCursorPosition(pointerPos);
                 return;

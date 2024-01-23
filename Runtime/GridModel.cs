@@ -2,6 +2,7 @@ using Sirenix.OdinInspector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Events;
@@ -684,7 +685,15 @@ namespace PGIA
         static void ReflectiveSetContainer(IGridItemModel item, IGridModel container)
         {
             var type = item.GetType();
-            type.GetProperty(nameof(item.Container)).SetValue(item, container);
+            string propName = nameof(item.Container);
+            var prop = type.GetProperty(propName, 
+                BindingFlags.FlattenHierarchy |
+                BindingFlags.Public |
+                BindingFlags.NonPublic |
+                BindingFlags.Instance |
+                BindingFlags.GetProperty
+                );
+            prop.SetValue(item, container);
         }
         #endregion
     }

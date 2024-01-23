@@ -20,7 +20,12 @@ namespace PGIA
         [ReadOnly]
         public System.Guid Guid { get => BackingModel.Guid; }
 
-        
+        [ShowInInspector]
+        [Tooltip("If set, this item model's Custom Background Color will be used in the cells of the grid view occupied byt his item, rather than the default colors.")]
+        public virtual bool OverrideBackgroundColor { get => BackingModel._OverrideBackgroundColor; set => BackingModel._OverrideBackgroundColor = value; }
+        public virtual Color CustomBackgroundColor => OverrideBackgroundColor ? BackingModel.CustomBackgroundColor : Shared.Background;
+
+
         [Tooltip("Shared state information for all instances of this item.")]
         [ShowInInspector]
         public InventoryItemAsset Shared
@@ -36,7 +41,7 @@ namespace PGIA
         public IGridModel Container
         { 
             get => BackingModel.Container; 
-            private set
+            protected set
             {
                 var type = BackingModel.GetType();
                 type.GetProperty(nameof(BackingModel.Container)).SetValue(BackingModel, value);
@@ -44,7 +49,7 @@ namespace PGIA
         }
 
         [SerializeField]
-        GridItemModel BackingModel = new();
+        protected GridItemModel BackingModel = new();
 
 
         #region Events

@@ -27,6 +27,15 @@ namespace PGIA
         public Vector2Int Size => _Shared.Size;
         public IGridModel Container { get; private set; } //set via GridModel
 
+        public bool _OverrideBackgroundColor;
+        [ShowInInspector]
+        [Tooltip("If set, this item model's Custom Background Color will be used in the cells of the grid view occupied byt his item, rather than the default colors.")]
+        public bool OverrideBackgroundColor { get => _OverrideBackgroundColor; set => _OverrideBackgroundColor = value; }
+
+        [SerializeField]
+        Color _CustomBackgroundColor;
+        public Color CustomBackgroundColor => OverrideBackgroundColor ? _CustomBackgroundColor : Shared.Background;
+
 
         /// <summary>
         /// Primarily here as a means to allow the mono-behaviour version to initialize.

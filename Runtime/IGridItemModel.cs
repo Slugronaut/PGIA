@@ -14,6 +14,8 @@ namespace PGIA
         InventoryItemAsset Shared { get; }
         Vector2Int Size { get; }
         IGridModel Container { get; } //do we actually need this?
+        public bool OverrideBackgroundColor { get; }
+        public Color CustomBackgroundColor { get; }
 
         UnityEvent<IGridModel, IGridItemModel, OperationCancelAction> OnWillStoreItem { get; set; }
         UnityEvent<IGridModel, IGridItemModel> OnStoredItem { get; set; }

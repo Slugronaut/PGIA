@@ -335,7 +335,9 @@ namespace PGIA
             firstCellView.OverlappedCellViews = cellViews.Count > 1 ? cellViews : null;
             firstCellView.RootCellView = null;
 
-            TintCells(cellViews, item.Shared.Background, SharedGridAsset.DefaultColorIcon, false);
+            //update background colors (this will internally set the colors to the item color if the cells are occupied by that item
+            TintCells(cellViews, SharedGridAsset.DefaultColorBackground, SharedGridAsset.DefaultColorIcon);
+            //TintCells(cellViews, item.Shared.Background, SharedGridAsset.DefaultColorIcon, false);
 
             //now we want to set the icon of that cell and stretch it to fill the entire item region on the grid
             //TODO: hack to see if this works - needs to be cached so that we don't thrash our heap
@@ -368,6 +370,8 @@ namespace PGIA
             }
             firstCellView.OverlappedCellViews = null;
             firstCellView.RootCellView = null;
+
+            //force the cell colors to be the default background color
             TintCells(cellViews, SharedGridAsset.DefaultColorBackground, SharedGridAsset.DefaultColorIcon, false);
 
             //TODO: instead of destroying, we should cache this
@@ -680,9 +684,12 @@ namespace PGIA
         #region Static Helper Methods
         /// <summary>
         /// Helper for applying a tint and background color to a list of cell UI elements.
+        /// The emptyBackgroundColor is applied only if the cells are actually devoid of any items, otherwise they
+        /// will be the color of those item's chosing. This can be overriden by also setting 'allowItemBackgroundColors'
+        /// to false at which point only the emptyBackgroundColor will be used.
         /// </summary>
         /// <param name="emptyBackgroundColor"></param>
-        public static void TintCells(List<GridCellView> cells, Color emptyBackgroundColor, Color iconTint, bool useItemBackgroundColors = true)
+        public static void TintCells(List<GridCellView> cells, Color emptyBackgroundColor, Color iconTint, bool allowItemBackgroundColors = true)
         {
             if (cells != null)
             {
@@ -691,12 +698,11 @@ namespace PGIA
                     //set default tint just to be sure
                     cell.CellUI.style.backgroundColor = emptyBackgroundColor;
 
-                    //if this cell has an item we want to tint it... BUT only if it's the root cell. i.e. not one of the overlapped cells.
-                    //otherwise we'd fill in all of the cells with the color and it would look shit if there were transparencies. even worse
-                    //is that the colors wouldn't reset when swapping items
-                    if (useItemBackgroundColors && cell.Item != null)// && cell.OverlappedCellViews != null)
+                    //if this cell has an item we want to tint it
+                    if (allowItemBackgroundColors && cell.Item != null)
                     {
-                        cell.CellUI.style.backgroundColor = cell.Item.Shared.Background;
+                        //this is kinda nasty since we're now asking the model what color to use but... I don't feel like thinking up a better way
+                        cell.CellUI.style.backgroundColor = cell.Item.OverrideBackgroundColor ? cell.Item.CustomBackgroundColor : cell.Item.Shared.Background;
                     }
 
 

@@ -38,8 +38,8 @@ namespace PGIA
             PointerLocal = pointerLocal;
             PointerWorld = pointerWorld;
             RootCellView = GridViewBehaviour.FindRootCell(CellView);
-            IconWidth = RootCellView.IconWidth;// CellUI.style.width;
-            IconHeight = RootCellView.IconHeight;// CellUI.style.height;
+            IconWidth = RootCellView.IconWidth;
+            IconHeight = RootCellView.IconHeight;
 
             Region = Model.GetLocation(Item);
             if(Region == null)

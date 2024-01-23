@@ -2,7 +2,6 @@ using Sirenix.OdinInspector;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.UIElements;
@@ -13,8 +12,14 @@ namespace PGIA
     /// The controller interfaces between the GridModel and the UIElements used to visualize it.
     /// 
     /// TODO:
-    ///     -problem when overlapping odd-numbered mutli-cell items, tends to drift too far
-    ///     -dropping items with multiple vertical cells causes drift upward
+    ///     -I *REALLY* need to separate out the logic of the View-Model from the view itself.
+    ///         The view-model should not rely on monobehaviours at all and should be pure code and SO data.
+    ///         The view then should never directly access the model but should instead make requests to perform
+    ///         actions via the view-model. This will allow more flexible designs where views can be implemented
+    ///         for different control schemes and setups plus allow for networking more easily.
+    ///     -add events for hovering and clicking on items
+    ///     -add the ability to 'select' items in a selection mode rather than begin dragging
+    ///     -add support for per-item override of background colors. This way we can hilight item states for each individual item
     ///     -stack splitting process
     /// </summary>
     public class GridViewBehaviour : MonoBehaviour
@@ -99,6 +104,7 @@ namespace PGIA
         bool Initialized;
         bool IsDragging => DragSource != null;
         bool CandidateForStickyDrag;
+        double StickyDragStartTime = -1;
 
         //For now I only forsee a single hilight needed for all menus since it is driven by the mouse.
         //I've referenced this list by the full class name so if this ends up changing to an instance variable
@@ -462,6 +468,7 @@ namespace PGIA
             //cache data
             DragSource = dragSource;
             CandidateForStickyDrag = true;
+            StickyDragStartTime = Time.unscaledTimeAsDouble;
 
             //setup the cursor
             CursorAsset.SyncCursorToDragState(DragSource);
@@ -478,7 +485,6 @@ namespace PGIA
             }
         }
 
-
         /// <summary>
         /// Not gonna lie. This fuction is some real R Kelly Doo-doo Butter. Don't even read it. Seriously. Look away! I'm too ashamed!
         /// </summary>
@@ -488,7 +494,7 @@ namespace PGIA
 
 
             #region Sticky Drag
-            if (CandidateForStickyDrag)
+            if (CandidateForStickyDrag && Time.realtimeSinceStartupAsDouble - StickyDragStartTime < SharedGridAsset.StickyDragMoveTime)
             {
                 HilightHoveredCells(clickedCellView, localPos, GridViewBehaviour.HilightedCells);
                 CandidateForStickyDrag = false;
@@ -607,11 +613,6 @@ namespace PGIA
             if (IsDragging)
             {
                 HilightHoveredCells(cellView, localPos, GridViewBehaviour.HilightedCells);
-                if (CandidateForStickyDrag)
-                {
-                    if ((DragSource.PointerWorld - cellView.CellUI.LocalToWorld(localPos)).sqrMagnitude > SharedGridAsset.StickyDragMoveThreshold)
-                        CandidateForStickyDrag = false;
-                }
             }
 
         }

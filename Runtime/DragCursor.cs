@@ -198,6 +198,7 @@ namespace PGIA
                 CursorUI.style.backgroundImage = new StyleBackground(dragState.Item.Shared.Icon);
                 CursorUI.style.width = dragState.IconWidth;
                 CursorUI.style.height = dragState.IconHeight;
+                CursorUI.BringToFront();
             }
         }
 

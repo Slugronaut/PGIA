@@ -11,8 +11,8 @@ namespace PGIA
         [Space(12)]
         [Tooltip("The name used to identify the visual element in cells when displaying stack counts.")]
         public string StackQtyId = "StackQty";
-        [Tooltip("If the pointer is pressed down and doesn't move beyond this threshold the the drag will be 'sticky' upon release. I.E. it will not immeditately be dropped but will instead require another press.")]
-        public float StickyDragMoveThreshold = 12;
+        [Tooltip("The a drag is started and released within this time window the the drop operation is skipped, thus allowing the drag to be 'sticky'. I.E. it will not immeditately be dropped but will instead require another press.")]
+        public double StickyDragMoveTime = 0.15f;
 
         [Space(12)]
         [Tooltip("The color to display when hovering the pointer over an item while not dragging anything.")]

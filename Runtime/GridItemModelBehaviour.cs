@@ -20,9 +20,8 @@ namespace PGIA
         [ReadOnly]
         public System.Guid Guid { get => BackingModel.Guid; }
 
-        [ShowInInspector]
-        [Tooltip("If set, this item model's Custom Background Color will be used in the cells of the grid view occupied byt his item, rather than the default colors.")]
-        public virtual bool OverrideBackgroundColor { get => BackingModel._OverrideBackgroundColor; set => BackingModel._OverrideBackgroundColor = value; }
+        //These default values can be overriden in derived classes if you want per-item custom background cell colors.
+        public virtual bool OverrideBackgroundColor { get => false; }
         public virtual Color CustomBackgroundColor => OverrideBackgroundColor ? BackingModel.CustomBackgroundColor : Shared.Background;
 
 

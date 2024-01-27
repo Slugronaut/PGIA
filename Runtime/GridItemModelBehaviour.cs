@@ -30,7 +30,7 @@ namespace PGIA
         public InventoryItemAsset Shared
         {
             get => BackingModel.Shared;
-            private set
+            protected set
             {
                 var type = BackingModel.GetType();
                 type.GetProperty(nameof(BackingModel.Shared)).SetValue(BackingModel, value);

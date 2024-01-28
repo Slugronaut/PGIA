@@ -19,7 +19,6 @@ namespace PGIA
     ///         for different control schemes and setups plus allow for networking more easily.
     ///     -add events for hovering and clicking on items
     ///     -add the ability to 'select' items in a selection mode rather than begin dragging
-    ///     -add support for per-item override of background colors. This way we can hilight item states for each individual item
     ///     -stack splitting process
     /// </summary>
     public class GridViewBehaviour : MonoBehaviour
@@ -110,7 +109,10 @@ namespace PGIA
         //I've referenced this list by the full class name so if this ends up changing to an instance variable
         //the compiler will spit errors so that it's easier to spot what needs updated.
         readonly static List<GridCellView> HilightedCells = new();
-        static DragPayload DragSource;
+        /// <summary>
+        /// This is managed internally and *really* should not be messed with unless you know what you are doing.
+        /// </summary>
+        public static DragPayload DragSource { get; private set; }
         static bool AppIsQuitting = false;
         readonly static List<GridCellView> TempCells1 = new();
         readonly static List<GridCellView> TempCells2 = new();

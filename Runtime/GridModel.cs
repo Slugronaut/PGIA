@@ -341,10 +341,10 @@ namespace PGIA
             var loc = GetLocation(item);
             if (loc != null)
             {
-                FlagSlots(null, loc.Value);
                 OnCellsUpdated.Invoke(this, CellsInRegion(loc.Value)); //oof, IEnumerable<> garbage!
                 OnRemovedItem.Invoke(this, item);
                 item.OnRemovedItem.Invoke(this, item);
+                FlagSlots(null, loc.Value);
             }
 
             ReflectiveSetContainer(item, null);

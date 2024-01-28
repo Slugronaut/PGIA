@@ -67,7 +67,6 @@ namespace PGIA
         GridModel BackingModel = new();
         #endregion
 
-
         #region UnityEvents
         /// <summary>
         /// 

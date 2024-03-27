@@ -82,11 +82,17 @@ namespace PGIA
         /// <exception cref="System.Exception"></exception>
         void Initialize()
         {
+#if UNITY_EDITOR
+            //Debug.Log("DragCursor.Initialize() invoked...");
+#endif
             if (Equals(CursorAsset, null) || Equals(ScreenAsset, null) || Equals(PanelSettings, null))
                 throw new UnityException("You must supply a CursorAsset, ScreenAsset, and PanelSettings to the Drag Cursor.");
 
             if (Initialized) return;
 
+#if UNITY_EDITOR
+            //Debug.Log("DragCursor.Initialize() operation in progress...");
+#endif
             //create a dummy GameObject and add a UIDocument component to it.
             //this will be the container for the 'screen' that our cursor can be moved on
             DocGO = new GameObject("*** Cursor UI Doc ***");
@@ -118,6 +124,10 @@ namespace PGIA
             CursorUI.style.backgroundSize = new StyleBackgroundSize(new BackgroundSize(BackgroundSizeType.Contain));
 
             Initialized = true;
+
+#if UNITY_EDITOR
+            //Debug.Log("DragCursor.Initialize() complete.");
+#endif
         }
 
         /// <summary>

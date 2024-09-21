@@ -37,12 +37,12 @@ The first thing we need to do is ensure that the project has all of the required
 ### IElements / UIToolkit  
 PGIA is designed to work with Unity's new UIToolkit and does not support the old UGUI system anymore. You can ensure it is active by going to the Package Manager, selecting the *Built-in* packages from the dropdown and searching for UIElements. You should see something like the following screenshot if it is enabled.  
 
-![](doc/images/example01.PNG)  
+![](.doc/images/example01.PNG)  
 
 ### Input System  
 PGIA also requires the new Input System from Unity in order to properly track mouse positions. Unfortunately, some parts of UIElements still rely on the old system as well but luckily Unity supports both system simultaneously. Once more, you can use the package manager to ensure you have installed the new Input System.  
 
-![](doc/images/example02.PNG)  
+![](.doc/images/example02.PNG)  
 
 After installing Unity will likely ask you if you want to enable the new system and then require a restart. You should opt to do this. You can also toggle this option in the *Project Settings->Player->OtherSettings* and set *Active Input Handling* to *Both*.
 
@@ -62,12 +62,12 @@ The child element should also be given a name. In this example let's call it 'Gr
 
 Here is an example of how things might look.
 
-![](doc/images/example03.PNG)  
+![](.doc/images/example03.PNG)  
 
 
 After that, add create an empty GameObject in your scene and add a *UIDocument* component to it. Then supply a link to your UIPanel.  
 
-![](doc/images/example04.PNG)  
+![](.doc/images/example04.PNG)  
 
 
 
@@ -77,7 +77,7 @@ So we'll need a couple more UI elements before we can get properly started. Thes
 ### The Cursor
 The firs thing we want is a UI element to display our cursor when we are dragging items around. Open the UIBuilder again and add a single *VisualElement*. Name it 'Cursor'. This is important as this will be the tag that PGI uses to locate this particular object. Next, go to the Attributes and be sure to set *Picking Mode* to *Ignore*. This is done in code by PGIA but on some versions of Unity the API doesn't work so it must be forced manually in the editor. Save the file as something like 'Cursor.uxml' and that's it! All done!  
 
-![](doc/images/example05.PNG)  
+![](.doc/images/example05.PNG)  
 
 See? I told you it would be easy. Keep in mind that this UI element will dynamically be resized as needed so you don't need to bother with any of that. You *can* add additional styling if you really want to but it's not necessary at all. When you aren't dragging anything it will remain invisible.  
 
@@ -86,7 +86,7 @@ There may be some cases where we want to have multiple different UIs on the scre
 
 In the UIBuilder create a new tree. You can leave this one empty as PGIA will handle everything else internally. All you need to do is go to *Canvas Size* on the root and check the box for *Match Game View*.  
 
-![](doc/images/example06.PNG)  
+![](.doc/images/example06.PNG)  
 
 
 ### The Grid Cell  
@@ -101,7 +101,7 @@ border-top-color: var(--pgia-theme-cellborder-prime);
 border-bottom-color: var(--pgia-theme-cellborder-prime);
 ```
   
-![](doc/images/example07.PNG)  
+![](.doc/images/example07.PNG)  
 
 
 As with all of the other elements you can choose to add any other number of visual flourishes you desire including the placement of the StackQty element. This is all rather long-winded though so if you prefer a shortcut you can simply copy the 'GridCell.uxml' file found in PGIA's UI folder and start there, You'll still need to either define the border variables or override them in the UIBuilder yourself.
@@ -123,9 +123,9 @@ The final entry is called *Panel Settings*. If you look at the UIDocument compon
 
 When you are done it should look like the below images.  
 
-![](doc/images/example08.PNG)  
+![](.doc/images/example08.PNG)  
 
-![](doc/images/example09.PNG)  
+![](.doc/images/example09.PNG)  
 
 ### Grid View Asset  
 Next we need an asset that defines some of the visual aspects of our grid views. Again navigate to your UI folder and use the conext menu to select *Create->PGIA->Grid View Asset*. For now you can leave this file with its default values. Which is what we will work on next.  
@@ -146,7 +146,7 @@ PGIA provides a GridModel and IGridModel interface that allows for creating    i
 ### The Model
 Create a new GameObject in the scene and name it 'Inventory'. Attach a *GridModelBehaviour* to it. This will represent the data of our inventory. Give it a size of 10x10 cells. The other options can be left alone for now. Congrats! You now have an inventory!
 
-![](doc/images/example10.PNG) 
+![](.doc/images/example10.PNG) 
 
 
 ### The View
@@ -160,12 +160,12 @@ Now it's time to glue everything together! First link the *Model* to the *GridMo
 
 Next up, link the *Cursor Asset* to the Drag Cursor asset we created earlier. Then link the *Cell UI Asset* entry to the 'GridCell.uxml' we created. Finally, link the *Shared Grid Asset* to the Grid View Asset and we are finally done! If you followed along closely it should look similar to this:  
 
-![](doc/images/example11.PNG) 
+![](.doc/images/example11.PNG) 
 
 
 And with that, you are all done! You should now have a working inventory and view setup and ready to go! Try entering play mode and you should see a grid populating your UI.
 
-![](doc/images/example12.PNG) 
+![](.doc/images/example12.PNG) 
 
 But it looks so empty. Let's make some items and learn how to fill it.
 
@@ -186,7 +186,7 @@ Navigate to your UI folder once more and open the context menu. Select *Create->
 
 Currently most of the features in here are not used directly by PGIA and are simply there for my own personal use. Perhaps in the futrue *Id* and *Category* might get used for some kind of search or filtering feature. For now the only things that matter are *Icon* and *Size*. Select an appropriate icon for your item and then give it a size of at least 1x1 and no more than the size of your inventory (which in this example is 10x10).  
 
-![](doc/images/example13.PNG) 
+![](.doc/images/example13.PNG) 
 
 Now return to your scene and add a new GameObject and call it 'Item'. Add a *GridItemModelBehaviour* script to it. There is a field named *Shared* that you should link to the item asset you just created. Congrats! You now have an item to store in your inventory!
 
@@ -199,7 +199,7 @@ PGIA comes with a small utility MonoBehaviour for testing that can demonstrate t
 
 Start up your scene and the select a slot location for *X* and *Y* in the inspector window. Items are stored using their top-left corner as the coordinate so anything greater than 0x0 and less than the width and height of the inventory minus the width and height of the item should work here. Finally, press the 'Test Store' button in the inspector and it should store your item in the inventory.  
 
-![](doc/images/example14.PNG) 
+![](.doc/images/example14.PNG) 
 
 You can also test removing items by select a coordinate that overlaps with the item and pressing 'Test Remove'. I'll leave it as an exercise for you to have a look at the code for the script and learn how it works.  
 

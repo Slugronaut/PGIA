@@ -1,7 +1,7 @@
 # Power Grid Inventory - Again!  
 PGIA is revamp of the classic PGI. A diablo style, grid based inventory system for Unity.
 
-![](doc/images/intro00.gif)  
+![](.doc/images/intro00.gif)  
 
 # What's New  
 A remake of PGI Classic, this new inventory system has been redesigned from scratch to take advantage of all the
